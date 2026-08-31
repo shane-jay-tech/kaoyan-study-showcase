@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type ReactNode } from 'react';
+import { useState, type Dispatch } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -7,13 +7,10 @@ import {
   Archive,
   BookOpen,
   Brain,
-  BrainCircuit,
-  CalendarClock,
   Check,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
-  CircleDot,
   ClipboardCheck,
   Clock3,
   FileCheck2,
@@ -37,27 +34,21 @@ import {
   Search,
   ShieldCheck,
   SlidersHorizontal,
-  Sparkles,
   Target,
   Timer,
-  TriangleAlert,
   X,
 } from 'lucide-react';
 import {
   ANALYTICS_DATA,
   CONTENT_REVIEW_ITEMS,
-  DEFER_REASON_OPTIONS,
   DIAGNOSIS_STEPS,
   EXAM_FIXTURES,
   EXPRESSION_FIXTURES,
   KNOWLEDGE_POINTS,
-  MIRROR_PROFILE,
   STUDY_CHAPTERS,
   STUDY_TRACKS,
   SUBJECT_FILTERS,
   WRONG_QUESTION_FIXTURES,
-  type DemoTask,
-  type KnowledgePoint,
 } from '../../data/public-source-mirror';
 import { useDemo } from '../../lib/demo-context';
 import {
@@ -66,259 +57,39 @@ import {
   selectClearedReviewItems,
   selectCurrentAnswerCorrect,
   selectCurrentQuestion,
-  selectDashboardMetrics,
-  selectDaysRemaining,
-  selectNextAction,
-  selectPlanGroups,
-  selectPlanSummary,
   selectQuizPhase,
   selectQuizResult,
   selectReviewSummary,
-  selectStatusLabel,
   selectStudyStatus,
   type DemoAction,
   type DemoState,
   type KnowledgeStatus,
   type Route,
 } from '../../lib/demo-state';
-import { formatMinutes } from '../../lib/format';
 import { MiniChart } from '../../components/MiniChart';
 
+import { DashboardLoop } from './pages/DashboardPage';
+import { PlanPage } from './pages/PlanPage';
+import {
+  ActionButton,
+  ConfigSelect,
+  Kpi,
+  KnowledgePointRow,
+  PageHeader,
+  Panel,
+  Pill,
+  ProgressBar,
+  ReviewItemRow,
+  SectionLink,
+  SectionNav,
+  STATUS_META,
+  Tabs,
+  WorkflowContextBar,
+  ZapIcon,
+  type Tone,
+} from './primitives';
+
 export interface MirrorPageProps { navigate: (route: Route) => void; }
-
-type Tone = 'blue' | 'teal' | 'amber' | 'coral' | 'ink' | 'muted';
-
-const STATUS_META: Record<string, { label: string; tone: Tone }> = {
-  todo: { label: '待开始', tone: 'muted' },
-  in_progress: { label: '进行中', tone: 'blue' },
-  done: { label: '已完成', tone: 'teal' },
-  deferred: { label: '已延后', tone: 'amber' },
-  due: { label: '待复测', tone: 'amber' },
-  watch: { label: '观察中', tone: 'blue' },
-  cleared: { label: '已关闭', tone: 'teal' },
-  unseen: { label: '未学习', tone: 'muted' },
-  learning: { label: '学习中', tone: 'blue' },
-  review: { label: '需复习', tone: 'amber' },
-  mastered: { label: '已掌握', tone: 'teal' },
-  draft: { label: '草稿', tone: 'amber' },
-  ready: { label: '可开始', tone: 'blue' },
-  finished: { label: '已完成', tone: 'teal' },
-  reviewing: { label: '审核中', tone: 'amber' },
-  approved: { label: '已通过', tone: 'teal' },
-  frozen: { label: '已冻结', tone: 'ink' },
-  needs_revision: { label: '待重写', tone: 'coral' },
-  accepted: { label: '已结项', tone: 'teal' },
-};
-
-function Pill({ children, tone = 'muted' }: { children: ReactNode; tone?: Tone }) {
-  return <span className={`status-pill status-pill--${tone}`}>{children}</span>;
-}
-
-function ActionButton({ children, tone = 'primary', onClick, disabled = false, icon, testId }: {
-  children: ReactNode; tone?: 'primary' | 'secondary' | 'ghost' | 'warning'; onClick?: () => void; disabled?: boolean; icon?: ReactNode; testId?: string;
-}) {
-  return <button type="button" className={`btn btn--${tone}`} onClick={onClick} disabled={disabled} data-testid={testId}>{icon}{children}</button>;
-}
-
-function Panel({ children, title, meta, className = '', id }: { children: ReactNode; title?: ReactNode; meta?: ReactNode; className?: string; id?: string }) {
-  return <section className={`mirror-panel ${className}`} id={id}>
-    {title ? <div className="mirror-panel__head"><h2>{title}</h2>{meta ? <span>{meta}</span> : null}</div> : null}
-    {children}
-  </section>;
-}
-
-function PageHeader({ eyebrow, title, description, navigate: _navigate, action }: {
-  eyebrow?: string; title: string; description: string; navigate: (route: Route) => void; action?: ReactNode;
-}) {
-  return <header className="mirror-page-header">
-    <div>
-      {eyebrow ? <p className="mirror-eyebrow">{eyebrow}</p> : null}
-      <h1>{title}</h1>
-      <p>{description}</p>
-    </div>
-    {action ? <div className="mirror-page-header__actions">{action}</div> : null}
-  </header>;
-}
-
-function Tabs({ tabs, active, navigate }: { tabs: Array<{ route: Route; label: string }>; active: Route; navigate: (route: Route) => void }) {
-  return <nav className="mirror-tabs" aria-label="页面子导航">
-    {tabs.map(tab => <button key={tab.route} type="button" className={active === tab.route ? 'is-active' : ''} aria-current={active === tab.route ? 'page' : undefined} onClick={() => navigate(tab.route)}>{tab.label}</button>)}
-  </nav>;
-}
-
-function SectionNav({ items, label = '本页导航' }: { items: Array<{ id: string; label: string; badge?: ReactNode }>; label?: string }) {
-  return <nav className="mirror-section-nav" aria-label={label}>
-    {items.map(item => <button key={item.id} type="button" onClick={() => document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-      <span>{item.label}</span>{item.badge !== undefined ? <b>{item.badge}</b> : null}
-    </button>)}
-  </nav>;
-}
-
-function WorkflowContextBar({ title, detail, icon = <Info size={17} />, tone = 'blue' }: { title: string; detail: string; icon?: ReactNode; tone?: Tone }) {
-  return <aside className={`mirror-workflow-context mirror-workflow-context--${tone}`}>
-    <span className="mirror-workflow-context__icon">{icon}</span>
-    <div><strong>{title}</strong><p>{detail}</p></div>
-  </aside>;
-}
-
-function ProgressBar({ value, tone = 'blue', label }: { value: number; tone?: Tone; label?: string }) {
-  const safe = Math.max(0, Math.min(100, value));
-  return <div className="mirror-progress-wrap">
-    <div className="mirror-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={safe} aria-label={label || '进度'}><span className={`tone-${tone}`} style={{ width: `${safe}%` }} /></div>
-    {label ? <span className="mirror-progress__label">{label}</span> : null}
-  </div>;
-}
-
-function Kpi({ label, value, hint, tone = 'ink', icon }: { label: string; value: ReactNode; hint?: string; tone?: Tone; icon?: ReactNode }) {
-  return <div className={`mirror-kpi mirror-kpi--${tone}`}>
-    <div className="mirror-kpi__label">{icon}{label}</div>
-    <strong>{value}</strong>
-    {hint ? <span>{hint}</span> : null}
-  </div>;
-}
-
-function SectionLink({ label, route, navigate }: { label: string; route: Route; navigate: (route: Route) => void }) {
-  return <button type="button" className="mirror-section-link" onClick={() => navigate(route)}>{label}<ArrowRight size={15} aria-hidden="true" /></button>;
-}
-
-function StageStrip({ active = 2 }: { active?: number }) {
-  const stages = ['计划', '学习 / 练习', '证据记录', '延迟复盘', '洞察决策'];
-  return <div className="mirror-stage-strip" aria-label="学习闭环阶段">
-    {stages.map((stage, index) => <div key={stage} className={index <= active ? 'is-active' : ''}><span>{index + 1}</span><b>{stage}</b>{index < stages.length - 1 ? <i aria-hidden="true" /> : null}</div>)}
-  </div>;
-}
-
-function TaskRow({ task, dispatch, navigate, compact = false }: { task: DemoTask; dispatch: Dispatch<DemoAction>; navigate: (route: Route) => void; compact?: boolean }) {
-  const status = STATUS_META[task.status];
-  return <li className={`mirror-task-row${task.status === 'done' ? ' is-done' : ''}`} data-testid="mirror-task-row">
-    <button type="button" className={`mirror-task-check${task.status === 'done' ? ' is-done' : ''}`} aria-label={task.status === 'done' ? `${task.title}（已完成）` : `完成任务：${task.title}`} onClick={() => dispatch({ type: 'complete_task', id: task.id })}>
-      {task.status === 'done' ? <Check size={16} aria-hidden="true" /> : <CircleDot size={16} aria-hidden="true" />}
-    </button>
-    <div className="mirror-task-row__body">
-      <div className="mirror-task-row__title"><b>{task.title}</b><Pill tone={status.tone}>{status.label}</Pill><Pill tone="muted">{task.subject}</Pill></div>
-      <p>{compact ? task.evidence : task.detail}</p>
-      <div className="mirror-task-row__meta"><span><Clock3 size={13} />{task.durationMinutes} 分钟</span><span>证据：{task.evidence}</span>{task.deferReason ? <span className="text-amber">延后：{task.deferReason}</span> : null}</div>
-    </div>
-    {task.status === 'todo' ? <ActionButton tone="secondary" onClick={() => { dispatch({ type: 'start_task', id: task.id }); navigate(task.linkRoute as Route); }} icon={<Play size={15} />}>开始</ActionButton> : null}
-  </li>;
-}
-
-function DashboardLoop({ navigate }: MirrorPageProps) {
-  const { state, dispatch } = useDemo();
-  const metrics = selectDashboardMetrics(state);
-  const next = selectNextAction(state);
-  const review = selectReviewSummary(state);
-  const daysLeft = selectDaysRemaining();
-  const activity = selectActivity();
-  const due = state.reviewItems.filter(item => item.status === 'due').length;
-  const completed = state.tasks.filter(task => task.status === 'done').length;
-  const activeTasks = state.tasks.filter(task => task.status !== 'deferred');
-
-  return <div className="mirror-page mirror-page--wide mirror-page--dashboard" data-testid="dashboard-root">
-    <PageHeader eyebrow="学习工作台" title="学习工作台" description="今天先完成最重要的一步，再处理计划中的其余任务。" navigate={navigate} action={<div className="mirror-header-stats"><Pill tone="blue">综合备考主线</Pill><Pill tone="teal">距阶段检查 {daysLeft} 天</Pill></div>} />
-
-    <div className="mirror-focus-grid">
-      <Panel className="mirror-next-action" title="下一步行动" meta="根据今日计划与记忆压力排序">
-        <div className="mirror-next-action__content"><div><h2>{next.label}</h2><p>{next.detail}</p><div className="mirror-next-action__tags"><Pill tone="blue">证据型任务</Pill><span>完成后会回写今日进度</span></div></div><ActionButton onClick={() => { const task = state.tasks.find(item => item.title === next.label); if (task && task.status === 'todo') dispatch({ type: 'start_task', id: task.id }); navigate(next.route); }} icon={<ArrowRight size={17} />}>打开下一步</ActionButton></div>
-        <StageStrip active={2} />
-      </Panel>
-      <Panel className="mirror-today-tasks" title="今日任务" meta={`${completed}/${activeTasks.length} 项完成`}>
-        <ul className="mirror-task-list">{activeTasks.slice(0, 4).map(task => <TaskRow key={task.id} task={task} dispatch={dispatch} navigate={navigate} compact />)}</ul>
-        <SectionLink label="查看完整计划" route="plan" navigate={navigate} />
-      </Panel>
-    </div>
-
-    <section className="mirror-kpi-grid" aria-label="今日进度">
-      <Kpi icon={<Target size={15} />} label="今日任务" value={`${metrics.completedTasks}/${metrics.totalTasks}`} hint={`${metrics.completionPercent}% 已完成`} tone="blue" />
-      <Kpi icon={<Clock3 size={15} />} label="有效学习" value={formatMinutes(metrics.completedMinutes)} hint={`计划 ${formatMinutes(metrics.plannedMinutes)}`} tone="teal" />
-      <Kpi icon={<Brain size={15} />} label="记忆压力" value={`${review.active} 项`} hint={due > 0 ? `${due} 项今天到期` : '当前无到期项'} tone={due > 0 ? 'amber' : 'teal'} />
-      <Kpi icon={<Target size={15} />} label="近期正确率" value={`${metrics.accuracy}%`} hint="固定示例历史窗口" tone="ink" />
-    </section>
-
-    <div className="mirror-two-col mirror-dashboard-capacity-zone">
-      <Panel className="mirror-dashboard-health" title="学习闭环健康" meta="当前演示快照">
-        <div className="mirror-health-row"><div className="mirror-health-score"><strong>76</strong><span>/ 100</span></div><div><Pill tone="teal">运行平稳</Pill><p>计划、作答、复测和洞察之间有可追踪连接。</p></div></div>
-        <div className="mirror-health-list">
-          {['计划有证据要求', '练习结果可带回复盘', '错题有延迟复测', '薄弱点能回到计划'].map((item, index) => <div key={item}><CheckCircle2 size={16} className="icon-teal" /><span>{item}</span><small>{index < 3 ? '已覆盖' : '待补一条表达证据'}</small></div>)}
-        </div>
-      </Panel>
-      <Panel className="mirror-dashboard-capacity" title="记忆压力与训练容量" meta="今日恢复路线">
-        <div className="mirror-capacity-summary"><div><span>知识卡到期</span><strong>{review.due + 8}</strong></div><div><span>词汇到期</span><strong>14</strong></div><div><span>剩余容量</span><strong>{Math.max(0, state.profile.cardCapacity - 18)}</strong></div></div>
-        <ProgressBar value={Math.round((18 / state.profile.cardCapacity) * 100)} tone="amber" label={`已使用 18 / ${state.profile.cardCapacity} 张`} />
-        <p className="mirror-note">建议先处理到期卡，再进入新内容；达到容量上限后不会继续塞入新卡。</p>
-        <div className="mirror-inline-actions"><SectionLink label="去间隔复习" route="review" navigate={navigate} /><SectionLink label="看容量规则" route="plan" navigate={navigate} /></div>
-      </Panel>
-    </div>
-
-    <div className="mirror-two-col mirror-dashboard-panorama">
-      <Panel title="各轨道概览" meta="掌握与正确率">
-        <div className="mirror-track-overview">
-          {[
-            { label: '专业主线', progress: 63, accuracy: 82, tone: 'blue' as Tone },
-            { label: '语言训练', progress: 57, accuracy: 76, tone: 'teal' as Tone },
-            { label: '公共基础', progress: 61, accuracy: 79, tone: 'amber' as Tone },
-            { label: '表达训练', progress: 42, accuracy: 64, tone: 'coral' as Tone },
-          ].map(item => <div key={item.label} className="mirror-track-row"><div><b>{item.label}</b><span>{item.progress}% 掌握</span></div><ProgressBar value={item.progress} tone={item.tone} /><strong>{item.accuracy}%</strong></div>)}
-        </div>
-        <SectionLink label="进入学习中心" route="study" navigate={navigate} />
-      </Panel>
-      <Panel title="近 14 天活动" meta="分钟与正确率">
-        <MiniChart data={activity.map(point => ({ label: point.label, value: point.minutes }))} tone="teal" secondary={activity.map(point => point.accuracy)} secondaryTone="blue" highlightedIndex={activity.length - 1} showLabels ariaLabel="近 14 天每日有效学习时长与正确率" unit=" 分钟" />
-      </Panel>
-    </div>
-
-    <div className="mirror-alert-grid">
-      <Panel className="mirror-strategy" title="阶段策略" meta="基础巩固期">
-        <div className="mirror-alert-content"><Flag size={18} /><div><strong>先保证理解和复测证据，再扩大题量</strong><p>当前阶段建议保持每日容量，优先处理高优先级任务与到期卡。</p></div><SectionLink label="打开计划" route="plan" navigate={navigate} /></div>
-      </Panel>
-      <Panel className="mirror-debt" title="待处理提醒" meta="不会自动隐藏">
-        <div className="mirror-alert-content"><TriangleAlert size={18} /><div><strong>有 1 项任务已延后</strong><p>延期原因会保留在计划中，下一轮可重新安排或拆分。</p></div><SectionLink label="处理" route="plan" navigate={navigate} /></div>
-      </Panel>
-    </div>
-
-    <div className="mirror-two-col mirror-dashboard-footer">
-      <Panel className="mirror-dashboard-prediction" title="分数预测" meta="固定示例计算">
-        <div className="mirror-prediction"><div className="mirror-prediction__value"><strong>{state.profile.targetScore - 18}</strong><span>/ {state.profile.targetScore} 目标</span></div><ProgressBar value={Math.round(((state.profile.targetScore - 18) / state.profile.targetScore) * 100)} tone="blue" label="基于当前证据的示例区间" /></div>
-        <p className="mirror-note">这只是公开镜像的计算示例，不代表真实成绩或结果预测。</p>
-      </Panel>
-      <Panel className="mirror-dashboard-backup" title="备份与数据边界" meta="演示状态">
-        <div className="mirror-health-row"><ShieldCheck size={22} className="icon-teal" /><div><strong>{state.backupCreated ? '示例备份已创建' : '建议建立一个备份提醒'}</strong><p>真实系统会在本地管理备份；这里仅展示产品状态，不写入文件。</p></div></div>
-        <ActionButton tone="secondary" onClick={() => dispatch({ type: 'create_backup' })} icon={<Archive size={15} />}>{state.backupCreated ? '已完成示例动作' : '模拟创建备份'}</ActionButton>
-      </Panel>
-    </div>
-  </div>;
-}
-
-function PlanPage({ navigate }: MirrorPageProps) {
-  const { state, dispatch } = useDemo();
-  const groups = selectPlanGroups(state);
-  const summary = selectPlanSummary(state);
-  const [deferring, setDeferring] = useState<string | null>(null);
-  const [dateOffset, setDateOffset] = useState(0);
-  const [showWorkbench, setShowWorkbench] = useState(false);
-  const dateLabel = dateOffset === 0 ? '今天' : dateOffset < 0 ? '昨天' : '明天';
-  const utilization = Math.min(100, Math.round((summary.scheduledMinutes / summary.capacityMinutes) * 100));
-  const slotHints: Record<string, string> = { 上午: '高优先级与理解任务优先', 下午: '材料、练习和阶段检查', 晚上: '记忆复盘与表达输出' };
-
-  function deferTask(task: DemoTask, reason: string) { dispatch({ type: 'defer_task', id: task.id, reason }); setDeferring(null); }
-
-  return <div className="mirror-page mirror-page--wide mirror-page--plan">
-    <Tabs active="plan" navigate={navigate} tabs={[{ route: 'plan', label: '今日计划' }, { route: 'study', label: '学习安排' }, { route: 'analytics', label: '周证据复盘' }]} />
-    <PageHeader eyebrow="计划中心" title="计划" description="计划是受每日容量约束的行动队列，每项任务都说明完成证据。" navigate={navigate} action={<div className="mirror-date-switch"><button type="button" aria-label="前一天" onClick={() => setDateOffset(value => value - 1)}><ArrowLeft size={15} /></button><span>{dateLabel} · 示例日期</span><button type="button" aria-label="后一天" onClick={() => setDateOffset(value => value + 1)}><ArrowRight size={15} /></button></div>} />
-    <SectionNav items={[{ id: 'plan-capacity', label: '容量与证据' }, { id: 'plan-adjustment', label: '自适应调整' }, { id: 'plan-tasks', label: '任务队列', badge: summary.scheduledMinutes }, { id: 'plan-review', label: '证据复盘' }]} />
-    <WorkflowContextBar title="今日计划上下文" detail="容量、优先级与证据要求共同决定下一步，所有变化只存在于本次演示。" icon={<CalendarClock size={17} />} />
-
-    <div className="mirror-plan-topline" id="plan-capacity"><Panel className="mirror-capacity-panel" title="每日容量" meta={`目标 ${state.profile.dailyMinutes} 分钟`}><div className="mirror-capacity-numbers"><div><strong>{summary.scheduledMinutes}</strong><span>已安排分钟</span></div><div><strong>{summary.remainingMinutes}</strong><span>待完成分钟</span></div><div><strong>{summary.capacityMinutes}</strong><span>容量上限</span></div></div><ProgressBar value={utilization} tone={utilization > 90 ? 'amber' : 'blue'} label={`已使用 ${utilization}%`} /><p className="mirror-note">延期会释放时长，但保留原任务和原因；开始过的任务会在承接时留下记录。</p></Panel><Panel title="证据状态" meta="计划质量检查"><div className="mirror-evidence-grid"><Kpi label="已开始" value={summary.startedCount} hint="开始过的任务" tone="blue" /><Kpi label="证据任务" value={summary.evidenceCount} hint="要求可核验产出" tone="teal" /><Kpi label="已延后" value={summary.deferredCount} hint="需下一轮处理" tone="amber" /></div></Panel></div>
-
-    <Panel id="plan-adjustment" className="mirror-adaptive" title="自适应调整" meta="根据容量与行为证据"><div className="mirror-adaptive__body"><SlidersHorizontal size={20} /><div><strong>今日安排尚未超载，但有一项阶段检查已延后。</strong><p>建议保留核心理解和复测，阶段检查可拆成“完成作答”和“整理证据”两个部分。</p></div><ActionButton tone="secondary" onClick={() => setShowWorkbench(value => !value)} icon={<ChevronDown size={15} />}>{showWorkbench ? '收起工作台' : '查看拆分工作台'}</ActionButton></div>{showWorkbench ? <div className="mirror-workbench"><div><Pill tone="blue">原任务</Pill><strong>阶段测验证据整理 · 20 分钟</strong></div><ArrowRight size={16} /><div><Pill tone="teal">拆分后</Pill><strong>完成作答 12 分钟 + 记录反思 8 分钟</strong></div><ActionButton tone="ghost" onClick={() => setShowWorkbench(false)} icon={<Check size={15} />}>采用示例安排</ActionButton></div> : null}</Panel>
-
-    <div className="mirror-plan-groups" id="plan-tasks">{(['上午', '下午', '晚上'] as const).map(slot => <Panel key={slot} title={slot} meta={slotHints[slot]}><ul className="mirror-plan-task-list">{groups[slot].map(task => { const status = STATUS_META[task.status]; const isDeferring = deferring === task.id; return <li key={task.id} className="mirror-plan-task"><div className="mirror-plan-task__top"><div><div className="mirror-task-row__title"><b>{task.title}</b><Pill tone={status.tone}>{status.label}</Pill><Pill tone={task.priority === 'high' ? 'coral' : task.priority === 'medium' ? 'amber' : 'muted'}>{task.priority === 'high' ? '高优先级' : task.priority === 'medium' ? '中优先级' : '低优先级'}</Pill></div><p>{task.detail}</p></div><span className="mirror-duration"><Clock3 size={14} />{task.durationMinutes} 分钟</span></div><div className="mirror-plan-task__evidence"><FileCheck2 size={14} /><span>完成证据：{task.evidence}</span></div>{task.deferReason ? <p className="mirror-defer-reason">延后原因：{task.deferReason}</p> : null}<div className="mirror-plan-task__actions">{task.status === 'todo' ? <ActionButton tone="primary" onClick={() => dispatch({ type: 'start_task', id: task.id })} icon={<Play size={14} />}>开始</ActionButton> : null}{task.status === 'in_progress' ? <ActionButton tone="primary" onClick={() => dispatch({ type: 'complete_task', id: task.id })} icon={<Check size={14} />}>完成并记录证据</ActionButton> : null}{task.status !== 'done' && task.status !== 'deferred' ? <ActionButton tone="secondary" onClick={() => setDeferring(isDeferring ? null : task.id)} icon={isDeferring ? <X size={14} /> : <CalendarClock size={14} />}>延后</ActionButton> : null}<ActionButton tone="ghost" onClick={() => navigate(task.linkRoute as Route)} icon={<ArrowRight size={14} />}>打开关联页</ActionButton></div>{isDeferring ? <div className="mirror-defer-panel" role="group" aria-label={`为${task.title}选择延后原因`}>{DEFER_REASON_OPTIONS.map(reason => <button type="button" key={reason} onClick={() => deferTask(task, reason)}>{reason}</button>)}<button type="button" onClick={() => setDeferring(null)}>取消</button></div> : null}</li>; })}</ul></Panel>)}</div>
-
-    <Panel id="plan-review" title="7 天证据复盘" meta="用实际完成与计划差异调整下一轮"><div className="mirror-week-review-grid"><Kpi label="计划分钟" value="1,320" hint="过去 7 天" tone="ink" /><Kpi label="实际分钟" value="1,086" hint="已记录" tone="teal" /><Kpi label="完成率" value="82%" hint="按任务证据" tone="blue" /><Kpi label="待复测" value="12" hint="下轮优先" tone="amber" /></div><div className="mirror-next-steps"><strong>下一步（按证据排序）</strong><ol><li><span>01</span>完成“控制条件与结果解释”的第二次独立复测</li><li><span>02</span>把表达训练拆成一版短回答和一次重写</li><li><span>03</span>检查阶段测验草稿是否需要继续承接</li></ol></div></Panel>
-
-    <Panel title="阶段时间表" meta={`${MIRROR_PROFILE.phase} · 标准安排`}><div className="mirror-phase-table"><div><span>当前阶段</span><strong>{MIRROR_PROFILE.phase}</strong></div><div><span>每日重点</span><strong>{MIRROR_PROFILE.phaseLabel}</strong></div><div><span>每周休息</span><strong>每周 1 天</strong></div><div><span>切换条件</span><strong>基础章节完成并有独立作答证据</strong></div></div></Panel>
-  </div>;
-}
 
 function StudyPage({ navigate, trackId }: MirrorPageProps & { trackId?: string }) {
   const { state, dispatch } = useDemo();
@@ -344,12 +115,6 @@ function StudyPage({ navigate, trackId }: MirrorPageProps & { trackId?: string }
   </div>;
 }
 
-function KnowledgePointRow({ point, status, dispatch }: { point: KnowledgePoint; status: KnowledgeStatus; dispatch: Dispatch<DemoAction> }) {
-  const meta = STATUS_META[status];
-  const next: KnowledgeStatus = status === 'unseen' ? 'learning' : status === 'learning' ? 'review' : status === 'review' ? 'mastered' : 'mastered';
-  return <article className="mirror-point-row"><div className="mirror-point-row__icon"><BrainCircuit size={17} /></div><div className="mirror-point-row__body"><div><strong>{point.title}</strong><Pill tone={meta.tone}>{meta.label}</Pill></div><p>{point.detail}</p><span><FileCheck2 size={13} />{point.evidence} · {point.sourceLabel}</span></div><ActionButton tone={status === 'mastered' ? 'ghost' : 'secondary'} onClick={() => dispatch({ type: 'set_study_status', id: point.id, status: next })} icon={status === 'mastered' ? <Check size={14} /> : <ArrowRight size={14} />}>{status === 'mastered' ? '已掌握' : `标为${STATUS_META[next].label}`}</ActionButton></article>;
-}
-
 function PracticePage({ navigate }: MirrorPageProps) {
   const { state, dispatch } = useDemo();
   const phase = selectQuizPhase(state);
@@ -372,10 +137,6 @@ function PracticePage({ navigate }: MirrorPageProps) {
     <WorkflowContextBar title="练习上下文" detail="范围、题型和数量只在本次演示中生效；提交后可回到结果与复盘。" icon={<SlidersHorizontal size={17} />} />
     <div className="mirror-practice-layout"><Panel id="practice-config" className="mirror-practice-config" title="开始一组练习" meta="所有设置仅在本次演示中生效"><ConfigSelect label="出题方式" value={sourceMode} options={['按题型抽题', '按薄弱点抽题', '按章节顺序']} onChange={setSourceMode} /><ConfigSelect label="选择科目" value={subject} options={['全部科目', ...SUBJECT_FILTERS.slice(1)]} onChange={setSubject} /><ConfigSelect label="选择章节" value={chapter} options={['当前重点章节', '基础概念与研究框架', '研究设计与证据', '阅读结构识别']} onChange={setChapter} /><ConfigSelect label="选择题型" value={questionType} options={['单选题', '多选题', '简答题', '默写训练']} onChange={setQuestionType} /><div className="mirror-config-field"><label htmlFor="practice-amount">练习数量</label><div className="mirror-stepper"><button type="button" aria-label="减少题数" onClick={() => setAmount(value => String(Math.max(1, Number(value) - 1)))}>-</button><input id="practice-amount" value={amount} onChange={event => setAmount(event.target.value.replace(/[^0-9]/g, '').slice(0, 2) || '1')} inputMode="numeric" /><button type="button" aria-label="增加题数" onClick={() => setAmount(value => String(Math.min(20, Number(value) + 1)))}>+</button></div></div><ActionButton onClick={() => { dispatch({ type: 'start_practice', mode: questionType === '多选题' ? 'multi' : questionType === '简答题' ? 'short' : 'single' }); }} icon={<Play size={16} />}>开始练习</ActionButton><p className="mirror-note"><ShieldCheck size={14} />题目、答案和反馈来自本地固定示例，不连接在线服务。</p></Panel><div className="mirror-practice-side"><Panel id="practice-types" title="可用题型" meta="与当前系统入口对应"><div className="mirror-type-list">{[['单选题', CheckCircle2, '4 选 1 · 适合快速检查'], ['多选题', ListChecks, '精确选择全部正确项'], ['简答题', FileText, '按采分点查看结构反馈'], ['默写训练', ClipboardCheck, '对照关键点检查遗漏']].map(([label, Icon, detail]) => <div key={String(label)}><span className="mirror-type-icon"><Icon size={17} /></span><div><strong>{String(label)}</strong><p>{String(detail)}</p></div><ChevronRight size={15} /></div>)}</div></Panel><Panel id="practice-after" title="练习后的去向" meta="结果不会停在本页"><div className="mirror-route-list"><div><span>01</span><b>提交答案</b><small>看到固定解析和知识点</small></div><div><span>02</span><b>查看结果</b><small>错题可加入复习队列</small></div><div><span>03</span><b>回到计划</b><small>记录下一步证据</small></div></div></Panel></div></div>
   </div>;
-}
-
-function ConfigSelect({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
-  return <div className="mirror-config-field"><label>{label}</label><select value={value} onChange={event => onChange(event.target.value)}>{options.map(option => <option key={option}>{option}</option>)}</select></div>;
 }
 
 function PracticeSession({ state, dispatch, navigate, question, selectedCorrect }: { state: DemoState; dispatch: Dispatch<DemoAction>; navigate: (route: Route) => void; question: ReturnType<typeof selectCurrentQuestion>; selectedCorrect: boolean }) {
@@ -417,13 +178,6 @@ function ReviewPage({ navigate }: MirrorPageProps) {
   if (mode !== 'idle' && current) return <div className="mirror-page mirror-page--runner mirror-page--review-session"><PageHeader eyebrow="复盘中心" title={mode === 'quick' ? '快速模式' : '深度模式'} description="先回忆，再翻卡确认；评级会影响下一次出现时间。" navigate={navigate} action={<Pill tone="amber">剩余 {active.length} 张</Pill>} /><div className="mirror-review-session"><div className="mirror-review-session__progress"><span>第 {Math.max(1, active.findIndex(item => item.id === current.id) + 1)} / {active.length} 张</span><ProgressBar value={((active.findIndex(item => item.id === current.id) + 1) / Math.max(1, active.length)) * 100} tone="amber" label="队列进度" /></div><article className={`mirror-flashcard${flipped ? ' is-flipped' : ''}`}><div className="mirror-flashcard__face"><Pill tone="blue">{current.subject} · {current.chapter}</Pill><h2>{current.title}</h2><p>{current.reason}</p><button type="button" className="mirror-flip-button" onClick={() => setFlipped(true)}><RotateCcw size={18} />{flipped ? '已翻面' : '回忆后翻卡'}</button></div>{flipped ? <div className="mirror-flashcard__answer"><span>参考要点</span><strong>先说明概念边界，再用一个不同情境检查是否能迁移。</strong><p>这张卡的下一次间隔会根据你的评级重新安排。</p></div> : null}</article>{flipped ? <div className="mirror-rating"><p>这次回忆质量如何？</p><div>{(mode === 'quick' ? [['1', '忘记了'], ['3', '想起来'], ['5', '很熟'] as const] : [['0', '完全不会'], ['1', '很模糊'], ['2', '需要提示'], ['3', '基本掌握'], ['4', '清晰'], ['5', '非常熟'] as const]).map(([value, label]) => <button type="button" key={value} onClick={() => rate(Number(value) >= 3)}>{value}<small>{label}</small></button>)}</div></div> : null}<ActionButton tone="ghost" onClick={() => setMode('idle')} icon={<ArrowLeft size={15} />}>返回队列</ActionButton></div></div>;
 
   return <div className="mirror-page mirror-page--wide mirror-page--review"><Tabs active="review" navigate={navigate} tabs={[{ route: 'review', label: '间隔复习' }, { route: 'wrong-questions', label: '错题本' }, { route: 'expression', label: '主观表达' }]} /><PageHeader eyebrow="复盘中心" title="间隔复习" description="知识卡按间隔调度；第一次通过进入观察，第二次独立通过才关闭。" navigate={navigate} action={<Pill tone="amber">基于间隔调度的示例队列</Pill>} /><SectionNav items={[{ id: 'review-route', label: '恢复路线' }, { id: 'review-queue', label: '队列概览', badge: active.length }, { id: 'review-modes', label: '复习模式' }, { id: 'review-governance', label: '失败治理' }]} /><WorkflowContextBar title="复盘上下文" detail="评级会改变下一次出现时间；公开版本只记录本次演示中的固定队列状态。" icon={<RotateCcw size={17} />} tone="amber" /><Panel id="review-route" className="mirror-memory-route" title="今日记忆恢复路线" meta="先处理到期内容"><div className="mirror-route-cards"><div className="is-primary"><span>知识卡</span><strong>{summary.due + 8} 张到期</strong><p>本轮载入 {active.length} 张 · 按章节块轮转</p></div><div><span>语言词汇</span><strong>14 个到期库存</strong><p>今日 18 / {state.profile.vocabularyCapacity} · 新内容受容量限制</p></div><div><span>反复失败卡</span><strong>2 张待治理</strong><p>可暂停，避免挤占今日容量</p></div></div></Panel><Panel id="review-queue" title="队列概览" meta="按轨道与章节组织"><div className="mirror-review-summary"><Kpi label="待复测" value={summary.due} hint="今天到期" tone="amber" /><Kpi label="观察中" value={summary.watch} hint="下一轮确认" tone="blue" /><Kpi label="已关闭" value={summary.cleared} hint="保留证据" tone="teal" /><Kpi label="今日容量" value={`${state.profile.cardCapacity} 张`} hint="示例上限" tone="ink" /></div><div className="mirror-subject-queues"><div><span>主线轨道</span><strong>12 张</strong><small>到期 8 · 新卡 4</small></div><div><span>辅助轨道</span><strong>9 张</strong><small>到期 6 · 新卡 3</small></div><div><span>章节轮转</span><strong>3 个块</strong><small>从当前章节连续处理</small></div></div></Panel><div className="mirror-mode-grid" id="review-modes"><button type="button" onClick={() => { setMode('quick'); setCurrentId(active[0]?.id || ''); }}><ZapIcon /><div><strong>快速模式</strong><p>闪卡翻转，适合碎片时间快速过知识点。</p></div><ArrowRight size={16} /></button><button type="button" onClick={() => { setMode('deep'); setCurrentId(active[0]?.id || ''); }}><Brain size={21} /><div><strong>深度模式</strong><p>先回忆再翻转，严格自评，适合重点强化。</p></div><ArrowRight size={16} /></button></div><Panel title="当前队列" meta={`${active.length} 条需要行动`}><div className="mirror-review-list">{active.map(item => <ReviewItemRow key={item.id} item={item} dispatch={dispatch} />)}</div></Panel><Panel id="review-governance" title="反复失败卡治理" meta="避免低质量卡持续挤占容量"><button type="button" className="mirror-collapse-trigger" onClick={() => setShowLeeches(value => !value)}><div><AlertTriangle size={17} /><strong>2 张卡达到治理阈值</strong><span>可查看暂停或恢复状态</span></div><ChevronDown size={16} className={showLeeches ? 'rotate-180' : ''} /></button>{showLeeches ? <div className="mirror-leech-list"><div><Pill tone="amber">待治理</Pill><span>材料中的限制边界</span><small>连续失败 3 次 · 建议暂停并补前置</small><ActionButton tone="ghost">暂停</ActionButton></div><div><Pill tone="teal">已恢复</Pill><span>控制条件与结果解释</span><small>完成一次补充练习 · 重新进入队列</small><ActionButton tone="ghost">查看</ActionButton></div></div> : null}</Panel>{cleared.length ? <Panel title="已关闭" meta="保留两次独立证据"><div className="mirror-review-list">{cleared.map(item => <ReviewItemRow key={item.id} item={item} dispatch={dispatch} />)}</div></Panel> : null}</div>;
-}
-
-function ZapIcon() { return <Sparkles size={21} />; }
-
-function ReviewItemRow({ item, dispatch }: { item: ReturnType<typeof selectActiveReviewItems>[number]; dispatch: Dispatch<DemoAction> }) {
-  const status = STATUS_META[item.status];
-  return <article className={`mirror-review-item is-${item.status}`} data-testid={`review-item-${item.id}`}><div className="mirror-review-item__main"><div className="mirror-review-item__title"><Pill tone={status.tone}>{selectStatusLabel(item.status)}</Pill><strong>{item.title}</strong><span>{item.subject} · {item.chapter}</span></div><p>{item.reason}</p><div className="mirror-review-milestones"><span className={item.stage >= 1 ? 'is-done' : ''}>{item.stage >= 1 ? <Check size={12} /> : '1'} 首次证据</span><span className={item.stage >= 2 ? 'is-done' : ''}>{item.stage >= 2 ? <Check size={12} /> : '2'} 再次证据</span><small>{item.intervalLabel} · 已复测 {item.attempts} 次</small></div></div><div className="mirror-review-item__side"><div className="mirror-confidence"><span>信心</span><div>{[1, 2, 3, 4, 5].map(level => <button type="button" key={level} className={item.confidence === level ? 'is-selected' : ''} aria-label={`信心等级 ${level}`} onClick={() => dispatch({ type: 'set_review_confidence', id: item.id, confidence: level })}>{level}</button>)}</div></div>{item.status !== 'cleared' ? <div className="mirror-review-item__actions"><ActionButton tone="primary" onClick={() => dispatch({ type: 'retest_review', id: item.id, correct: true })} testId={`review-pass-${item.id}`}>复测通过</ActionButton><ActionButton tone="secondary" onClick={() => dispatch({ type: 'retest_review', id: item.id, correct: false })} testId={`review-fail-${item.id}`}>需要重练</ActionButton></div> : <span className="mirror-cleared-note">两次独立复测已完成</span>}</div></article>;
 }
 
 function WrongQuestionsPage({ navigate }: MirrorPageProps) {

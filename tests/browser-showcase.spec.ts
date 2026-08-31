@@ -164,6 +164,32 @@ test.describe('public showcase browser contract', () => {
     await expectRuntimeHealthy(page, diagnostics);
   });
 
+  test('keeps the deep plan workflow deterministic across dates and task actions', async ({ page }) => {
+    const diagnostics = attachRuntimeDiagnostics(page);
+    await page.goto('#/plan', { waitUntil: 'networkidle' });
+
+    await page.getByRole('button', { name: '后一天' }).click();
+    await expect(page.locator('.mirror-page-header')).toContainText('明天');
+    const tomorrowTask = page.locator('.mirror-plan-task').filter({ hasText: '测量基础回顾' });
+    await expect(tomorrowTask).toBeVisible();
+    await page.getByRole('button', { name: '前一天' }).click();
+    await expect(page.locator('.mirror-page-header')).toContainText('今天');
+
+    const readingTask = page.locator('.mirror-plan-task').filter({ hasText: '材料结构拆解' });
+    await readingTask.getByRole('button', { name: '跳过' }).click();
+    await readingTask.getByRole('button', { name: '需要先补齐前置知识点' }).click();
+    await expect(readingTask).toContainText('跳过原因：需要先补齐前置知识点');
+
+    const focusTask = page.locator('.mirror-plan-task').filter({ hasText: '核心概念精读' });
+    await focusTask.getByRole('button', { name: '拆分' }).click();
+    await expect(page.locator('.mirror-plan-task').filter({ hasText: '核心概念精读（第一部分）' })).toBeVisible();
+    await expect(page.locator('.mirror-plan-task').filter({ hasText: '核心概念精读（第二部分）' })).toBeVisible();
+
+    const weeklyPanel = page.locator('.mirror-panel').filter({ hasText: '7 天证据复盘' });
+    await expect(weeklyPanel).toContainText('延后/跳过');
+    await expectRuntimeHealthy(page, diagnostics);
+  });
+
   test('matches the current-product shell and page primitive contract', async ({ page }) => {
     const diagnostics = attachRuntimeDiagnostics(page);
     await page.goto('#/today', { waitUntil: 'networkidle' });
