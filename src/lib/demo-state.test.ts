@@ -11,15 +11,21 @@ import {
   routeFromHash,
   selectCurrentAnswerCorrect,
   selectDashboardMetrics,
+  selectDiagnosisReport,
   selectPlanSummary,
+  selectPlanTasks,
+  selectPracticeAnswer,
+  selectPracticeProgress,
   selectQuizPhase,
   selectQuizResult,
+  selectReviewDeckSummary,
   selectReviewSummary,
+  selectWrongBookItems,
   type DemoAction,
   type DemoState,
 } from './demo-state';
 import { daysUntil, formatMinutes, formatPercent } from './format';
-import { EXAM_FIXTURES } from '../data/public-source-mirror';
+import { EXAM_FIXTURES, KNOWLEDGE_POINTS, PRACTICE_BANK, REVIEW_DECK, WRONG_BOOK } from '../data/public-source-mirror';
 
 function reduce(state: DemoState, ...actions: DemoAction[]): DemoState {
   return actions.reduce(demoReducer, state);
@@ -311,6 +317,122 @@ describe('extended mirror workflows', () => {
     expect(demoReducer(initial, { type: 'resolve_wrong_question', id: 'missing' })).toBe(initial);
     expect(demoReducer(initial, { type: 'approve_content', id: 'missing' })).toBe(initial);
     expect(demoReducer(initial, { type: 'select_expression', id: 'missing' })).toBe(initial);
+  });
+});
+
+describe('deep core-loop engine', () => {
+  it('keeps every expanded fixture id unique', () => {
+    const pointIds = KNOWLEDGE_POINTS.map(point => point.id);
+    expect(new Set(pointIds).size).toBe(pointIds.length);
+    const bankIds = PRACTICE_BANK.map(question => question.id);
+    expect(new Set(bankIds).size).toBe(bankIds.length);
+    const deckIds = REVIEW_DECK.map(card => card.id);
+    expect(new Set(deckIds).size).toBe(deckIds.length);
+    const wrongIds = WRONG_BOOK.map(item => item.id);
+    expect(new Set(wrongIds).size).toBe(wrongIds.length);
+  });
+
+  it('switches plan date within bounds and loads deterministic day templates', () => {
+    const state = createInitialState();
+    const tomorrow = demoReducer(state, { type: 'change_plan_date', offset: 1 });
+    expect(tomorrow.planDateOffset).toBe(1);
+    expect(selectPlanTasks(tomorrow).some(task => task.id === 'plan-d1-01')).toBe(true);
+    const clamped = demoReducer(state, { type: 'change_plan_date', offset: 99 });
+    expect(clamped.planDateOffset).toBe(2);
+    expect(demoReducer(state, { type: 'change_plan_date', offset: 0 })).toBe(state);
+  });
+
+  it('skips and splits tasks with explicit reasons', () => {
+    const state = createInitialState();
+    const skipped = demoReducer(state, { type: 'skip_task', id: 'task-reading-02', reason: '今天不再安排' });
+    expect(skipped.tasks.find(task => task.id === 'task-reading-02')?.status).toBe('skipped');
+    expect(skipped.planHistory.some(event => event.action === 'skipped')).toBe(true);
+    expect(demoReducer(state, { type: 'skip_task', id: 'task-reading-02', reason: ' ' })).toBe(state);
+
+    const split = demoReducer(state, { type: 'split_task', id: 'task-memory-03' });
+    const parts = split.tasks.filter(task => task.id.startsWith('task-memory-03-part'));
+    expect(parts).toHaveLength(2);
+    expect(parts[0].durationMinutes + parts[1].durationMinutes).toBe(30);
+  });
+
+  it('runs a multi-choice practice and grades exact selections', () => {
+    let state = createInitialState();
+    state = demoReducer(state, { type: 'configure_practice', trackId: 'professional', chapterId: 'pro-02', questionType: 'multi', count: 2 });
+    state = demoReducer(state, { type: 'start_practice', mode: 'multi' });
+    expect(state.practice.phase).toBe('active');
+    expect(state.practice.questions).toHaveLength(2);
+    const question = state.practice.questions[0];
+    expect(question.type).toBe('multi');
+    for (const index of question.correctIndexes ?? []) {
+      state = demoReducer(state, { type: 'toggle_option', index });
+    }
+    state = demoReducer(state, { type: 'submit_answer' });
+    expect(selectPracticeAnswer(state, question.id)?.score).toBe(1);
+    state = demoReducer(state, { type: 'advance_question' });
+    expect(state.practice.currentIndex).toBe(1);
+  });
+
+  it('grades short answers by scoring points and verbatim by expected lines', () => {
+    let state = createInitialState();
+    state = demoReducer(state, { type: 'configure_practice', trackId: 'language', chapterId: 'all', questionType: 'short', count: 1 });
+    state = demoReducer(state, { type: 'start_practice' });
+    const question = state.practice.questions[0];
+    expect(question.type).toBe('short');
+    state = demoReducer(state, { type: 'write_answer', text: '复述出核心判断：策略在现有样本中表现出改善迹象；限制是尚不能推广到其他条件。' });
+    state = demoReducer(state, { type: 'submit_answer' });
+    const answer = selectPracticeAnswer(state, question.id);
+    expect(answer?.score).toBeGreaterThan(0);
+    expect(answer?.submitted).toBe(true);
+
+    state = demoReducer(state, { type: 'configure_practice', trackId: 'all', chapterId: 'all', questionType: 'verbatim', count: 1 });
+    state = demoReducer(state, { type: 'start_practice' });
+    const verbatim = state.practice.questions[0];
+    expect(verbatim.type).toBe('verbatim');
+    state = demoReducer(state, { type: 'write_answer', text: verbatim.answer });
+    state = demoReducer(state, { type: 'submit_answer' });
+    expect(selectPracticeAnswer(state, verbatim.id)?.score).toBe(verbatim.expectedLines?.length);
+  });
+
+  it('finishes a practice session into history and wrong book', () => {
+    let state = createInitialState();
+    state = demoReducer(state, { type: 'configure_practice', trackId: 'professional', chapterId: 'all', questionType: 'single', count: 2 });
+    state = demoReducer(state, { type: 'start_practice' });
+    for (const question of state.practice.questions) {
+      state = demoReducer(state, { type: 'toggle_option', index: (question.correctIndex ?? 0) === 0 ? 1 : 0 });
+      state = demoReducer(state, { type: 'submit_answer' });
+      state = demoReducer(state, { type: 'advance_question' });
+    }
+    expect(state.practice.phase).toBe('complete');
+    expect(selectPracticeProgress(state).answered).toBe(2);
+    const before = state.wrongBook.length;
+    state = demoReducer(state, { type: 'finish_practice' });
+    expect(state.practice.history).toHaveLength(1);
+    expect(state.practice.history[0].total).toBe(2);
+    expect(state.wrongBook.length).toBeGreaterThanOrEqual(before);
+    expect(selectWrongBookItems(state).some(item => !item.resolved)).toBe(true);
+  });
+
+  it('rates review cards into deterministic intervals and governs leeches', () => {
+    let state = createInitialState();
+    state = demoReducer(state, { type: 'rate_review_card', id: 'rc-01', quality: 5 });
+    const rated = state.reviewDeck.find(card => card.id === 'rc-01');
+    expect(rated?.status).toBe('watch');
+    expect(rated?.nextIntervalDays).toBe(7);
+    state = demoReducer(state, { type: 'suspend_leech', id: 'rc-03' });
+    expect(state.reviewDeck.find(card => card.id === 'rc-03')?.suspended).toBe(true);
+    state = demoReducer(state, { type: 'resume_leech', id: 'rc-03' });
+    expect(state.reviewDeck.find(card => card.id === 'rc-03')?.suspended).toBe(false);
+    expect(selectReviewDeckSummary(state).due).toBeGreaterThan(0);
+  });
+
+  it('generates a diagnosis report from current evidence', () => {
+    const initial = createInitialState();
+    expect(selectDiagnosisReport(initial)).toBeNull();
+    const state = demoReducer(initial, { type: 'generate_diagnosis' });
+    const report = selectDiagnosisReport(state);
+    expect(report?.generated).toBe(true);
+    expect(report?.evidence.length).toBeGreaterThan(0);
+    expect(report?.actions).toContain('把诊断建议作为任务写回计划');
   });
 });
 
