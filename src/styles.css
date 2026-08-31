@@ -2600,3 +2600,28 @@ html.dark .mirror-feedback .mirror-reference-answer { background: #1b2638; borde
 html.dark .mirror-card-back { background: #1b2638; }
 html.dark .mirror-review-filter button { background: #1b2638; border-color: #33465e; }
 html.dark .mirror-review-filter button.is-active { background: #3a2c16; border-color: var(--color-amber); }
+
+/* Deep analytics and diagnosis surfaces. */
+.mirror-subject-insights { display: grid; gap: 13px; }
+.mirror-subject-insights > div { display: grid; grid-template-columns: minmax(0,1fr) 42px; gap: 8px; align-items: center; }
+.mirror-subject-insights > div > div { display: flex; justify-content: space-between; gap: 8px; }
+.mirror-subject-insights strong { font-size: 12px; }
+.mirror-subject-insights span { color: var(--color-muted); font-size: 11px; }
+.mirror-subject-insights .mirror-progress-wrap { grid-column: 1/-1; margin-top: 2px; }
+.mirror-weak-list > div { display: flex; align-items: center; gap: 11px; padding: 12px 0; border-top: 1px solid var(--color-line); }
+.mirror-weak-list > div:first-child { border-top: 0; }
+.mirror-weak-list > div > span { display: grid; place-items: center; width: 28px; height: 28px; flex: 0 0 28px; background: var(--color-coral-soft); color: var(--color-coral); font-size: 11px; font-weight: 700; }
+.mirror-weak-list > div > div { flex: 1; min-width: 0; }
+.mirror-weak-list > div > div > strong { display: block; font-size: 13px; }
+.mirror-weak-list > div > div > small { display: block; margin-top: 3px; color: var(--color-muted); font-size: 11px; }
+.mirror-analytics-history { display: grid; gap: 8px; margin-bottom: 12px; }
+.mirror-analytics-history > div { display: flex; align-items: center; gap: 9px; padding-bottom: 8px; border-bottom: 1px solid var(--color-line); font-size: 11px; }
+.mirror-analytics-history > div > strong { color: var(--color-ink-soft); }
+.mirror-analytics-history > div > small { margin-left: auto; color: var(--color-muted); }
+.mirror-report { display: grid; gap: 12px; }
+.mirror-report h3 { font-size: 15px; color: var(--color-blue); }
+.mirror-report > p { color: var(--color-ink-soft); font-size: 13px; }
+.mirror-report > div { padding: 10px; border: 1px solid var(--color-line); border-radius: 8px; background: var(--color-canvas); }
+.mirror-report > div > strong { display: block; margin-bottom: 6px; font-size: 11px; }
+.mirror-report > div > span { display: block; padding-left: 10px; color: var(--color-muted); font-size: 11px; line-height: 1.8; }
+html.dark .mirror-report > div { background: #1b2638; border-color: #33465e; }

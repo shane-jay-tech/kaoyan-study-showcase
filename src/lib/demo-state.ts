@@ -899,8 +899,31 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       return { ...state, wrongBook: state.wrongBook.map(record => record.id === action.id ? { ...record, retestInDays: 3 } : record) };
     }
 
-    case 'generate_diagnosis':
-      return { ...state, diagnosis: { report: buildDiagnosisReport(state) }, diagnosisStep: 2 };
+    case 'generate_diagnosis': {
+      if (state.diagnosis.report?.generated) return state;
+      const diagnosisTask: DemoTask = {
+        id: 'task-diagnosis-01',
+        title: '诊断建议：迁移练习与结构化重写',
+        subject: '能力诊断',
+        slot: '晚上',
+        durationMinutes: 30,
+        priority: 'medium',
+        status: 'todo',
+        evidence: '完成一次跨情境迁移练习和一版结构化重写',
+        detail: '由能力诊断生成：先补表达与迁移证据，再把结论带回计划。',
+        taskType: 'diagnosis',
+        completionMode: 'evidence',
+        linkRoute: 'practice',
+      };
+      const tasks = state.tasks.some(task => task.id === diagnosisTask.id) ? state.tasks : [...state.tasks, diagnosisTask];
+      return {
+        ...state,
+        tasks,
+        diagnosis: { report: buildDiagnosisReport(state) },
+        diagnosisStep: 2,
+        planHistory: [...state.planHistory, { id: 'plan-diagnosis-01', dateOffset: state.planDateOffset, label: selectPlanDateLabel(state), taskId: diagnosisTask.id, action: 'diagnosis_added', minutes: diagnosisTask.durationMinutes }],
+      };
+    }
 
     case 'advance_diagnosis':
       return { ...state, diagnosisStep: Math.min(2, state.diagnosisStep + 1) };

@@ -1,7 +1,5 @@
 import { useState, type Dispatch } from 'react';
 import {
-  Activity,
-  AlertTriangle,
   ArrowRight,
   Archive,
   Check,
@@ -12,8 +10,6 @@ import {
   FileText,
   Filter,
   History,
-  Info,
-  Lightbulb,
   LockKeyhole,
   PenLine,
   Play,
@@ -22,27 +18,23 @@ import {
   Save,
   ShieldCheck,
   SlidersHorizontal,
-  Target,
   Timer,
   X,
 } from 'lucide-react';
 import {
-  ANALYTICS_DATA,
   CONTENT_REVIEW_ITEMS,
-  DIAGNOSIS_STEPS,
   EXAM_FIXTURES,
 } from '../../data/public-source-mirror';
 import { useDemo } from '../../lib/demo-context';
 import {
-  selectActivity,
   type DemoAction,
   type DemoState,
   type Route,
 } from '../../lib/demo-state';
-import { MiniChart } from '../../components/MiniChart';
 
 import { DashboardLoop } from './pages/DashboardPage';
 import { PlanPage } from './pages/PlanPage';
+import { AnalyticsPage, DiagnosisPage } from './pages/AnalyticsDiagnosisPages';
 import { PracticePage } from './pages/PracticePage';
 import { ExpressionPage, ReviewPage, WrongQuestionsPage } from './pages/ReviewPages';
 import { StudyPage } from './pages/StudyPages';
@@ -84,17 +76,6 @@ function ExamRunner({ navigate, state, dispatch, selected }: { navigate: (route:
 
 function ExamResult({ navigate, dispatch, selected }: { navigate: (route: Route) => void; dispatch: Dispatch<DemoAction>; selected: typeof EXAM_FIXTURES[number] }) {
   return <div className="mirror-page mirror-page--runner mirror-page--exam-result"><PageHeader eyebrow="模拟考试结果" title="交卷完成" description="逐题反馈和补救动作会保留在结果页。" navigate={navigate} action={<Pill tone="teal">提交已确认</Pill>} /><Panel className="mirror-exam-result"><div className="mirror-result-icon is-good"><Check size={30} /></div><h2>{selected.label}</h2><div className="mirror-result-score"><strong>8</strong><span> / 12 题示例得分</span></div><p>结果已保存为固定演示状态；主观部分仍需人工确认，不自动视为权威评分。</p><div className="mirror-feedback-table">{['概念辨析 · 正确', '材料分析 · 需要复测', '结构表达 · 待重写', '综合判断 · 正确'].map((item, index) => <div key={item}><span>{index + 1}</span><strong>{item}</strong><ArrowRight size={15} /></div>)}</div><div className="mirror-result-actions"><ActionButton onClick={() => navigate('wrong-questions')} icon={<RotateCcw size={15} />}>进入补救队列</ActionButton><ActionButton tone="secondary" onClick={() => navigate('expression')} icon={<PenLine size={15} />}>继续表达训练</ActionButton><ActionButton tone="ghost" onClick={() => dispatch({ type: 'reset_exam' })} icon={<RefreshCw size={15} />}>返回考试列表</ActionButton></div></Panel></div>;
-}
-
-function AnalyticsPage({ navigate }: MirrorPageProps) {
-  const activity = selectActivity();
-  return <div className="mirror-page mirror-page--wide mirror-page--analytics"><Tabs active="analytics" navigate={navigate} tabs={[{ route: 'analytics', label: '数据分析' }, { route: 'diagnosis', label: '能力诊断' }]} /><PageHeader eyebrow="数据与诊断" title="数据分析" description="把答题、复测和学习时长汇总为可解释的观察，不只展示图表。" navigate={navigate} action={<Pill tone="blue">固定示例数据</Pill>} /><SectionNav items={[{ id: 'analytics-summary', label: '指标总览' }, { id: 'analytics-trend', label: '活动趋势' }, { id: 'analytics-weak', label: '薄弱点' }, { id: 'analytics-radar', label: '能力结构' }]} /><WorkflowContextBar title="数据分析上下文" detail="当前图表来自本地固定样本，用于展示观察路径，不代表真实学习记录。" icon={<Activity size={17} />} /><section id="analytics-summary" className="mirror-kpi-grid mirror-kpi-grid--four"><Kpi icon={<Activity size={15} />} label="总答题量" value={ANALYTICS_DATA.totalAnswers} hint="示例历史" tone="blue" /><Kpi icon={<RotateCcw size={15} />} label="复习量" value={ANALYTICS_DATA.totalReviews} hint="知识卡与词汇" tone="teal" /><Kpi icon={<Target size={15} />} label="总正确率" value={`${ANALYTICS_DATA.overallAccuracy}%`} hint="样本少时仅供参考" tone="ink" /><Kpi icon={<AlertTriangle size={15} />} label="薄弱点" value={ANALYTICS_DATA.weakPoints.length} hint="待转成行动" tone="amber" /></section><div className="mirror-two-col" id="analytics-trend"><Panel title="各轨道正确率" meta="全部示例作答"><div className="mirror-accuracy-list">{ANALYTICS_DATA.subjectAccuracy.map(item => { const value = Math.round((item.correct / item.total) * 100); return <div key={item.subject}><div><strong>{item.subject}</strong><span>{item.correct}/{item.total} 题</span></div><ProgressBar value={value} tone={value >= 80 ? 'teal' : value >= 70 ? 'blue' : 'amber'} /><b>{value}%</b></div>; })}</div></Panel><Panel title="近 14 天活动" meta="学习分钟与正确率"><MiniChart data={activity.map(point => ({ label: point.label, value: point.minutes }))} tone="teal" secondary={activity.map(point => point.accuracy)} secondaryTone="blue" highlightedIndex={activity.length - 1} showLabels ariaLabel="近 14 天活动" unit=" 分钟" /></Panel></div><Panel id="analytics-weak" title="薄弱点清单" meta="按答题证据排序"><div className="mirror-weak-list">{ANALYTICS_DATA.weakPoints.map((item, index) => <article key={item.title}><span className="mirror-rank">0{index + 1}</span><div><Pill tone={item.accuracy < 60 ? 'coral' : 'amber'}>{item.subject}</Pill><strong>{item.title}</strong><p>{item.attempts} 次作答 · 正确率 {item.accuracy}% · 建议加入一次迁移练习</p></div><ArrowRight size={16} /></article>)}</div></Panel><Panel id="analytics-radar" title="能力结构" meta="理解、记忆、迁移、表达、复盘"><div className="mirror-radar"><div className="mirror-radar-graphic"><svg viewBox="0 0 240 180" role="img" aria-label="能力结构示意图"><polygon points="120,14 207,76 174,166 66,166 33,76" fill="none" stroke="currentColor" opacity=".18" /><polygon points="120,42 182,86 158,142 82,142 58,86" fill="none" stroke="currentColor" opacity=".16" /><polygon points="120,48 165,88 150,132 92,126 67,84" fill="rgba(29,78,216,.18)" stroke="var(--color-blue)" strokeWidth="2" /></svg>{['理解', '记忆', '迁移', '表达', '复盘'].map((label, index) => <span key={label} className={`radar-label radar-label-${index}`}>{label}</span>)}</div><div className="mirror-radar-legend"><div><span className="dot-blue" />当前表现</div><p>迁移和表达是当前需要更多独立证据的方向，建议在下一轮计划中各安排一项。</p><SectionLink label="去能力诊断" route="diagnosis" navigate={navigate} /></div></div></Panel></div>;
-}
-
-function DiagnosisPage({ navigate }: MirrorPageProps) {
-  const { state, dispatch } = useDemo();
-  const activeStep = state.diagnosisStep;
-  return <div className="mirror-page mirror-page--narrow mirror-page--diagnosis"><Tabs active="diagnosis" navigate={navigate} tabs={[{ route: 'analytics', label: '数据分析' }, { route: 'diagnosis', label: '能力诊断' }]} /><PageHeader eyebrow="数据与诊断" title="能力诊断" description="先确认样本，再解释模式，最后把结论转成下一步行动。" navigate={navigate} action={<Pill tone="amber">证据不足时不下结论</Pill>} /><SectionNav items={[{ id: 'diagnosis-flow', label: '诊断流程' }, { id: 'diagnosis-sample', label: '已确认样本' }, { id: 'diagnosis-action', label: '下一步行动' }, { id: 'diagnosis-boundary', label: '诊断边界' }]} /><WorkflowContextBar title="诊断上下文" detail="先检查样本完整性，再解释模式；公开版本不会把固定样本当作个人结论。" icon={<Lightbulb size={17} />} tone="amber" /><Panel id="diagnosis-flow" title="诊断流程" meta={`第 ${activeStep + 1} / 3 步`}><div className="mirror-diagnosis-steps">{DIAGNOSIS_STEPS.map((step, index) => <div key={step.id} className={index <= activeStep ? 'is-active' : ''}><span>{index < activeStep ? <Check size={14} /> : index + 1}</span><div><strong>{step.label}</strong><p>{step.detail}</p></div>{index < DIAGNOSIS_STEPS.length - 1 ? <i /> : null}</div>)}</div></Panel><div className="mirror-diagnosis-grid" id="diagnosis-sample"><Panel title="已确认样本" meta="可版本化的示例证据"><div className="mirror-sample-list">{['专业主线 · 48 次作答', '语言训练 · 36 次作答', '表达训练 · 6 次结构反馈'].map(item => <div key={item}><CheckCircle2 size={16} className="icon-teal" /><span>{item}</span><Pill tone="teal">已确认</Pill></div>)}</div></Panel><Panel title="当前判断" meta="诊断草稿"><div className="mirror-diagnosis-conclusion"><Lightbulb size={20} /><div><strong>{activeStep >= 1 ? '迁移与表达的证据链仍不完整' : '正在收集基线样本'}</strong><p>{activeStep >= 1 ? '熟悉题型表现稳定，但换一种问法时容易遗漏限制条件；需要一次跨情境练习和一版结构化重写。' : '完成基线检查后再解释薄弱点。'}</p></div></div></Panel></div><Panel id="diagnosis-action" title="下一步行动" meta="诊断结果必须回到计划"><div className="mirror-diagnosis-actions"><div><Target size={19} /><strong>安排一次迁移练习</strong><span>比较不同表述下的解题过程</span></div><div><PenLine size={19} /><strong>完成一版结构重写</strong><span>用主张—依据—限制组织答案</span></div><ActionButton onClick={() => { dispatch({ type: 'advance_diagnosis' }); navigate('plan'); }} icon={<ArrowRight size={15} />}>{activeStep >= 2 ? '回到计划执行' : '确认并生成建议'}</ActionButton></div></Panel><Panel id="diagnosis-boundary" title="诊断边界" meta="公开镜像声明"><div className="mirror-disclaimer"><Info size={17} /><p>这里展示的是脱敏固定数据的诊断流程，不连接真实学习记录，也不代表任何人的能力结论。</p></div></Panel></div>;
 }
 
 function SystemPage({ navigate }: MirrorPageProps) {

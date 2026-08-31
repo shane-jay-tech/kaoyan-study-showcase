@@ -279,6 +279,33 @@ test.describe('public showcase browser contract', () => {
     await expectRuntimeHealthy(page, diagnostics);
   });
 
+  test('keeps analytics and diagnosis derived from session state', async ({ page }) => {
+    const diagnostics = attachRuntimeDiagnostics(page);
+
+    await page.goto('#/practice', { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: '开始练习' }).click();
+    for (let index = 0; index < 3; index += 1) {
+      await page.locator('.mirror-answer').nth(0).click();
+      await page.getByRole('button', { name: '提交答案' }).click();
+      await page.getByRole('button', { name: /下一题|查看本轮结果/ }).click();
+    }
+    await page.getByRole('button', { name: '加入复习队列' }).click();
+    await expect(page.getByRole('button', { name: '查看复习队列' })).toBeVisible();
+
+    await page.goto('#/analytics', { waitUntil: 'networkidle' });
+    await expect(page.locator('.mirror-panel').filter({ hasText: '本会话练习回看' })).toContainText('示例会话 1');
+
+    await page.goto('#/diagnosis', { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: '确认并生成建议' }).click();
+    await expect(page).toHaveURL(/#\/plan$/);
+    await page.goto('#/diagnosis', { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: '应用建议并回到计划执行' }).click();
+    await expect(page).toHaveURL(/#\/plan$/);
+    await expect(page.locator('.mirror-plan-task').filter({ hasText: '诊断建议：迁移练习与结构化重写' })).toBeVisible();
+
+    await expectRuntimeHealthy(page, diagnostics);
+  });
+
   test('matches the current-product shell and page primitive contract', async ({ page }) => {
     const diagnostics = attachRuntimeDiagnostics(page);
     await page.goto('#/today', { waitUntil: 'networkidle' });
