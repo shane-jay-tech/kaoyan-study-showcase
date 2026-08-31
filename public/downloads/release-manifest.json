@@ -1,17 +1,17 @@
 {
-  "buildId": "local-20260831-233622",
-  "generatedAt": "2026-08-31T15:36:22.354Z",
+  "buildId": "local-20260901-014526",
+  "generatedAt": "2026-08-31T17:45:26.857Z",
   "site": {
     "base": "/kaoyan-study-showcase/"
   },
   "pdf": {
     "fileName": "考研智学系统-产品案例.pdf",
-    "sizeBytes": 631536,
-    "sha256": "2aa14c5887e24cb727cc09293a57189949f2ed912cd7f1c1667cead6de445137"
+    "sizeBytes": 832175,
+    "sha256": "e8b635e9f2dd47b8a293fcafeca433efb56788650d438acf603e9c35ae9d8397"
   },
   "zip": {
     "fileName": "考研智学系统-交互演示包.zip",
-    "sizeBytes": 2124587,
-    "sha256": "0150d0d9c95b7fc2ed3831a37a39052b168dec183ec0708445dd3dfec5f8b5f3"
+    "sizeBytes": 2983714,
+    "sha256": "335fc421cc6ea64ad14ad1acc0c334ffe0df46eef568e651344f35e2e0143f08"
   }
 }
