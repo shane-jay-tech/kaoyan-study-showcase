@@ -92,15 +92,15 @@ test.describe('public showcase browser contract', () => {
     await page.getByRole('button', { name: '查看复习队列' }).click();
     await expect(page).toHaveURL(/#\/review$/);
 
-    const reviewCard = page.getByTestId('review-item-review-01');
-    await reviewCard.getByTestId('review-pass-review-01').click();
+    const reviewCard = page.getByTestId('review-item-rc-01');
+    await reviewCard.getByTestId('review-pass-rc-01').click();
     await expect(reviewCard).toContainText('观察中');
-    await reviewCard.getByTestId('review-pass-review-01').click();
-    await expect(page.getByTestId('review-item-review-01')).toContainText('已关闭');
-    await expect(page.getByTestId('review-item-review-01')).not.toContainText('复测通过');
+    await reviewCard.getByTestId('review-pass-rc-01').click();
+    await expect(page.getByTestId('review-item-rc-01')).toContainText('已关闭');
+    await expect(page.getByTestId('review-item-rc-01')).not.toContainText('复测通过');
 
-    const retryCard = page.getByTestId('review-item-review-02');
-    await retryCard.getByTestId('review-fail-review-02').click();
+    const retryCard = page.getByTestId('review-item-rc-02');
+    await retryCard.getByTestId('review-fail-rc-02').click();
     await expect(retryCard).toContainText('待复测');
 
     if (test.info().project.name === 'desktop') {
@@ -251,6 +251,30 @@ test.describe('public showcase browser contract', () => {
     await page.getByLabel('练习作答').fill('概念操作化：把抽象概念转化为可观察、可记录的指标，并说明记录方式。');
     await page.getByRole('button', { name: '提交答案' }).click();
     await expect(page.locator('.mirror-feedback')).toContainText('回答正确');
+
+    await expectRuntimeHealthy(page, diagnostics);
+  });
+
+  test('keeps flashcard rating and wrong-book remediation deterministic', async ({ page }) => {
+    const diagnostics = attachRuntimeDiagnostics(page);
+    await page.goto('#/review', { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: '快速模式' }).click();
+    await page.getByRole('button', { name: '回忆后翻卡' }).click();
+    await page.locator('.mirror-rating').getByRole('button', { name: /3/ }).click();
+    await expect(page.locator('.mirror-review-session__progress')).toContainText('第 2 /');
+
+    await page.getByRole('button', { name: '返回队列' }).click();
+    await page.locator('.mirror-collapse-trigger').click();
+    const leech = page.locator('.mirror-leech-list').locator('div').filter({ hasText: '相关与因果' });
+    await leech.getByRole('button', { name: '暂停卡片' }).click();
+    await expect(leech).toContainText('已暂停');
+    await leech.getByRole('button', { name: '恢复队列' }).click();
+
+    await page.goto('#/wrong-questions', { waitUntil: 'networkidle' });
+    const wrong = page.locator('.mirror-wrong-item').filter({ hasText: '控制条件与结果解释' });
+    await wrong.getByRole('button', { name: '安排 3 天后复测' }).click();
+    await wrong.getByRole('button', { name: '记录已复测' }).click();
+    await expect(wrong).toContainText('证据已保留');
 
     await expectRuntimeHealthy(page, diagnostics);
   });

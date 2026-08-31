@@ -2589,3 +2589,14 @@ html.dark .mirror-point-keywords i { border-color: #33465e; background: #1b2638;
 .mirror-practice-footer-note { display: flex; align-items: center; gap: 7px; color: var(--color-muted); font-size: 11px; }
 html.dark .mirror-focus-practice { border-color: #355678; background: #16283f; }
 html.dark .mirror-feedback .mirror-reference-answer { background: #1b2638; border-color: #33465e; }
+
+/* Deep review surfaces. */
+.mirror-review-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.mirror-review-filter button { min-height: 32px; padding: 0 10px; border: 1px solid var(--color-line); border-radius: 999px; background: var(--color-surface); color: var(--color-muted); font-size: 11px; }
+.mirror-review-filter button.is-active { border-color: var(--color-amber); background: var(--color-amber-soft); color: var(--color-amber); font-weight: 700; }
+.mirror-card-front { color: var(--color-ink); font-size: 13px; }
+.mirror-card-back { margin-top: 6px; padding: 8px 10px; border-radius: 6px; background: var(--color-canvas); color: var(--color-ink-soft); font-size: 12px; }
+.mirror-card-back small { display: block; margin-bottom: 2px; color: var(--color-teal); font-weight: 700; }
+html.dark .mirror-card-back { background: #1b2638; }
+html.dark .mirror-review-filter button { background: #1b2638; border-color: #33465e; }
+html.dark .mirror-review-filter button.is-active { background: #3a2c16; border-color: var(--color-amber); }

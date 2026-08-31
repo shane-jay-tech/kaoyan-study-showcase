@@ -2,31 +2,24 @@ import { useState, type Dispatch } from 'react';
 import {
   Activity,
   AlertTriangle,
-  ArrowLeft,
   ArrowRight,
   Archive,
-  Brain,
   Check,
   CheckCircle2,
-  ChevronDown,
-  ChevronRight,
   Clock3,
   FileCheck2,
   FileQuestion,
   FileText,
   Filter,
-  Flag,
   History,
   Info,
   Lightbulb,
   LockKeyhole,
-  MessageSquareText,
   PenLine,
   Play,
   RefreshCw,
   RotateCcw,
   Save,
-  Search,
   ShieldCheck,
   SlidersHorizontal,
   Target,
@@ -38,15 +31,10 @@ import {
   CONTENT_REVIEW_ITEMS,
   DIAGNOSIS_STEPS,
   EXAM_FIXTURES,
-  EXPRESSION_FIXTURES,
-  WRONG_QUESTION_FIXTURES,
 } from '../../data/public-source-mirror';
 import { useDemo } from '../../lib/demo-context';
 import {
-  selectActiveReviewItems,
   selectActivity,
-  selectClearedReviewItems,
-  selectReviewSummary,
   type DemoAction,
   type DemoState,
   type Route,
@@ -56,6 +44,7 @@ import { MiniChart } from '../../components/MiniChart';
 import { DashboardLoop } from './pages/DashboardPage';
 import { PlanPage } from './pages/PlanPage';
 import { PracticePage } from './pages/PracticePage';
+import { ExpressionPage, ReviewPage, WrongQuestionsPage } from './pages/ReviewPages';
 import { StudyPage } from './pages/StudyPages';
 import {
   ActionButton,
@@ -64,13 +53,11 @@ import {
   Panel,
   Pill,
   ProgressBar,
-  ReviewItemRow,
   SectionLink,
   SectionNav,
   STATUS_META,
   Tabs,
   WorkflowContextBar,
-  ZapIcon,
   type Tone,
 } from './primitives';
 
@@ -80,47 +67,6 @@ function PastExamsPage({ navigate }: MirrorPageProps) {
   const [filter, setFilter] = useState('全部模块');
   const [selected, setSelected] = useState<string | null>(null);
   return <div className="mirror-page mirror-page--wide mirror-page--past-exams"><Tabs active="past-exams" navigate={navigate} tabs={[{ route: 'practice', label: '按题型练习' }, { route: 'past-exams', label: '历年试题' }, { route: 'exam', label: '模拟考试' }]} /><PageHeader eyebrow="练习中心" title="历年试题" description="按年份、模块和来源状态查看试题；错题可以回到复盘。" navigate={navigate} action={<Pill tone="teal">来源已泛化</Pill>} /><SectionNav items={[{ id: 'past-exams-index', label: '试题索引' }, { id: 'past-exams-detail', label: '已选详情' }]} /><WorkflowContextBar title="试题索引上下文" detail="当前目录只展示泛化入口，题目与来源不会连接到外部资料。" icon={<FileQuestion size={17} />} tone="teal" /><Panel id="past-exams-index" title="试题索引" meta="固定示例目录"><div className="mirror-filter-row"><Filter size={15} /><select value={filter} onChange={event => setFilter(event.target.value)}><option>全部模块</option><option>专业主线</option><option>语言训练</option><option>公共基础</option></select><span>共 9 个示例年份入口</span></div><div className="mirror-exam-index">{['2026', '2025', '2024', '2023', '2022', '2021', '2020', '2019', '2018'].map((year, index) => <button type="button" key={year} className={selected === `year-${year}` ? 'is-selected' : ''} onClick={() => setSelected(`year-${year}`)}><strong>{year}</strong><span>{index % 2 === 0 ? '完整示例卷' : '模块练习'}</span><small>{index + 8} 题 · 可复盘</small></button>)}</div></Panel>{selected ? <Panel id="past-exams-detail" title="已选试题" meta="演示详情"><div className="mirror-selected-exam"><div><Pill tone="blue">{selected.replace('year-', '')} · 固定示例</Pill><h2>{filter === '全部模块' ? '综合试题集' : `${filter}试题集`}</h2><p>题目、解析和来源均为脱敏示例；提交错题后可进入错题本和间隔复习。</p></div><div className="mirror-selected-exam__actions"><ActionButton onClick={() => navigate('practice')} icon={<Play size={15} />}>开始模块练习</ActionButton><ActionButton tone="secondary" onClick={() => navigate('wrong-questions')} icon={<RotateCcw size={15} />}>查看错题</ActionButton></div></div></Panel> : <div className="mirror-empty"><FileQuestion size={22} /><p>选择一个年份查看试题入口。</p></div>}</div>;
-}
-
-function ReviewPage({ navigate }: MirrorPageProps) {
-  const { state, dispatch } = useDemo();
-  const summary = selectReviewSummary(state);
-  const active = selectActiveReviewItems(state);
-  const cleared = selectClearedReviewItems(state);
-  const [mode, setMode] = useState<'idle' | 'quick' | 'deep'>('idle');
-  const [flipped, setFlipped] = useState(false);
-  const [currentId, setCurrentId] = useState(active[0]?.id || '');
-  const current = state.reviewItems.find(item => item.id === currentId) || active[0];
-  const [showLeeches, setShowLeeches] = useState(false);
-
-  function rate(correct: boolean) {
-    if (!current) return;
-    dispatch({ type: 'retest_review', id: current.id, correct });
-    const next = state.reviewItems.find(item => item.id !== current.id && item.status !== 'cleared');
-    setCurrentId(next?.id || '');
-    setFlipped(false);
-  }
-
-  if (mode !== 'idle' && current) return <div className="mirror-page mirror-page--runner mirror-page--review-session"><PageHeader eyebrow="复盘中心" title={mode === 'quick' ? '快速模式' : '深度模式'} description="先回忆，再翻卡确认；评级会影响下一次出现时间。" navigate={navigate} action={<Pill tone="amber">剩余 {active.length} 张</Pill>} /><div className="mirror-review-session"><div className="mirror-review-session__progress"><span>第 {Math.max(1, active.findIndex(item => item.id === current.id) + 1)} / {active.length} 张</span><ProgressBar value={((active.findIndex(item => item.id === current.id) + 1) / Math.max(1, active.length)) * 100} tone="amber" label="队列进度" /></div><article className={`mirror-flashcard${flipped ? ' is-flipped' : ''}`}><div className="mirror-flashcard__face"><Pill tone="blue">{current.subject} · {current.chapter}</Pill><h2>{current.title}</h2><p>{current.reason}</p><button type="button" className="mirror-flip-button" onClick={() => setFlipped(true)}><RotateCcw size={18} />{flipped ? '已翻面' : '回忆后翻卡'}</button></div>{flipped ? <div className="mirror-flashcard__answer"><span>参考要点</span><strong>先说明概念边界，再用一个不同情境检查是否能迁移。</strong><p>这张卡的下一次间隔会根据你的评级重新安排。</p></div> : null}</article>{flipped ? <div className="mirror-rating"><p>这次回忆质量如何？</p><div>{(mode === 'quick' ? [['1', '忘记了'], ['3', '想起来'], ['5', '很熟'] as const] : [['0', '完全不会'], ['1', '很模糊'], ['2', '需要提示'], ['3', '基本掌握'], ['4', '清晰'], ['5', '非常熟'] as const]).map(([value, label]) => <button type="button" key={value} onClick={() => rate(Number(value) >= 3)}>{value}<small>{label}</small></button>)}</div></div> : null}<ActionButton tone="ghost" onClick={() => setMode('idle')} icon={<ArrowLeft size={15} />}>返回队列</ActionButton></div></div>;
-
-  return <div className="mirror-page mirror-page--wide mirror-page--review"><Tabs active="review" navigate={navigate} tabs={[{ route: 'review', label: '间隔复习' }, { route: 'wrong-questions', label: '错题本' }, { route: 'expression', label: '主观表达' }]} /><PageHeader eyebrow="复盘中心" title="间隔复习" description="知识卡按间隔调度；第一次通过进入观察，第二次独立通过才关闭。" navigate={navigate} action={<Pill tone="amber">基于间隔调度的示例队列</Pill>} /><SectionNav items={[{ id: 'review-route', label: '恢复路线' }, { id: 'review-queue', label: '队列概览', badge: active.length }, { id: 'review-modes', label: '复习模式' }, { id: 'review-governance', label: '失败治理' }]} /><WorkflowContextBar title="复盘上下文" detail="评级会改变下一次出现时间；公开版本只记录本次演示中的固定队列状态。" icon={<RotateCcw size={17} />} tone="amber" /><Panel id="review-route" className="mirror-memory-route" title="今日记忆恢复路线" meta="先处理到期内容"><div className="mirror-route-cards"><div className="is-primary"><span>知识卡</span><strong>{summary.due + 8} 张到期</strong><p>本轮载入 {active.length} 张 · 按章节块轮转</p></div><div><span>语言词汇</span><strong>14 个到期库存</strong><p>今日 18 / {state.profile.vocabularyCapacity} · 新内容受容量限制</p></div><div><span>反复失败卡</span><strong>2 张待治理</strong><p>可暂停，避免挤占今日容量</p></div></div></Panel><Panel id="review-queue" title="队列概览" meta="按轨道与章节组织"><div className="mirror-review-summary"><Kpi label="待复测" value={summary.due} hint="今天到期" tone="amber" /><Kpi label="观察中" value={summary.watch} hint="下一轮确认" tone="blue" /><Kpi label="已关闭" value={summary.cleared} hint="保留证据" tone="teal" /><Kpi label="今日容量" value={`${state.profile.cardCapacity} 张`} hint="示例上限" tone="ink" /></div><div className="mirror-subject-queues"><div><span>主线轨道</span><strong>12 张</strong><small>到期 8 · 新卡 4</small></div><div><span>辅助轨道</span><strong>9 张</strong><small>到期 6 · 新卡 3</small></div><div><span>章节轮转</span><strong>3 个块</strong><small>从当前章节连续处理</small></div></div></Panel><div className="mirror-mode-grid" id="review-modes"><button type="button" onClick={() => { setMode('quick'); setCurrentId(active[0]?.id || ''); }}><ZapIcon /><div><strong>快速模式</strong><p>闪卡翻转，适合碎片时间快速过知识点。</p></div><ArrowRight size={16} /></button><button type="button" onClick={() => { setMode('deep'); setCurrentId(active[0]?.id || ''); }}><Brain size={21} /><div><strong>深度模式</strong><p>先回忆再翻转，严格自评，适合重点强化。</p></div><ArrowRight size={16} /></button></div><Panel title="当前队列" meta={`${active.length} 条需要行动`}><div className="mirror-review-list">{active.map(item => <ReviewItemRow key={item.id} item={item} dispatch={dispatch} />)}</div></Panel><Panel id="review-governance" title="反复失败卡治理" meta="避免低质量卡持续挤占容量"><button type="button" className="mirror-collapse-trigger" onClick={() => setShowLeeches(value => !value)}><div><AlertTriangle size={17} /><strong>2 张卡达到治理阈值</strong><span>可查看暂停或恢复状态</span></div><ChevronDown size={16} className={showLeeches ? 'rotate-180' : ''} /></button>{showLeeches ? <div className="mirror-leech-list"><div><Pill tone="amber">待治理</Pill><span>材料中的限制边界</span><small>连续失败 3 次 · 建议暂停并补前置</small><ActionButton tone="ghost">暂停</ActionButton></div><div><Pill tone="teal">已恢复</Pill><span>控制条件与结果解释</span><small>完成一次补充练习 · 重新进入队列</small><ActionButton tone="ghost">查看</ActionButton></div></div> : null}</Panel>{cleared.length ? <Panel title="已关闭" meta="保留两次独立证据"><div className="mirror-review-list">{cleared.map(item => <ReviewItemRow key={item.id} item={item} dispatch={dispatch} />)}</div></Panel> : null}</div>;
-}
-
-function WrongQuestionsPage({ navigate }: MirrorPageProps) {
-  const { state, dispatch } = useDemo();
-  const [filter, setFilter] = useState('全部');
-  const [query, setQuery] = useState('');
-  const visible = WRONG_QUESTION_FIXTURES.filter(item => (filter === '全部' || (filter === '待复测' ? item.due : filter === '已处理' ? state.wrongResolved.includes(item.id) : item.subject === filter)) && item.title.includes(query));
-  return <div className="mirror-page mirror-page--wide mirror-page--wrong"><Tabs active="wrong-questions" navigate={navigate} tabs={[{ route: 'review', label: '间隔复习' }, { route: 'wrong-questions', label: '错题本' }, { route: 'expression', label: '主观表达' }]} /><PageHeader eyebrow="复盘中心" title="错题本" description="错误不是收藏夹；每条记录都要有原因、修复动作和延迟复测。" navigate={navigate} action={<Pill tone="coral">{WRONG_QUESTION_FIXTURES.filter(item => item.due).length} 条待复测</Pill>} /><SectionNav items={[{ id: 'wrong-filter', label: '筛选与搜索' }, { id: 'wrong-list', label: '错题记录', badge: visible.length }]} /><WorkflowContextBar title="错题证据上下文" detail="每条记录保留原因、修复动作和复测次数，处理结果只改变公开演示状态。" icon={<AlertTriangle size={17} />} tone="coral" /><Panel id="wrong-filter" title="错题筛选" meta={`${visible.length} 条结果`}><div className="mirror-filter-row"><div className="mirror-search"><Search size={15} /><input aria-label="搜索错题" placeholder="搜索标题" value={query} onChange={event => setQuery(event.target.value)} /></div><div className="mirror-segmented">{['全部', '待复测', '已处理', '专业主线', '语言训练'].map(item => <button type="button" key={item} className={filter === item ? 'is-active' : ''} onClick={() => setFilter(item)}>{item}</button>)}</div></div></Panel><div className="mirror-wrong-list" id="wrong-list">{visible.map(item => { const resolved = state.wrongResolved.includes(item.id); return <article key={item.id} className={`mirror-wrong-item${resolved ? ' is-resolved' : ''}`}><div className="mirror-wrong-item__marker">{resolved ? <Check size={17} /> : <AlertTriangle size={17} />}</div><div className="mirror-wrong-item__body"><div><Pill tone={resolved ? 'teal' : item.due ? 'coral' : 'amber'}>{resolved ? '已处理' : item.due ? '待复测' : '观察中'}</Pill><strong>{item.title}</strong></div><p>{item.subject} · {item.chapter} · 最近 {item.lastSeen}</p><div className="mirror-wrong-evidence"><span><Flag size={13} />原因：{item.reason}</span><span><RotateCcw size={13} />已复测 {item.attempts} 次</span><span><FileCheck2 size={13} />修复：{item.action}</span></div></div><div className="mirror-wrong-actions">{!resolved ? <ActionButton tone="primary" onClick={() => dispatch({ type: 'resolve_wrong_question', id: item.id })} icon={<Check size={14} />}>记录已复测</ActionButton> : <Pill tone="teal">证据已保留</Pill>}<ActionButton tone="ghost" onClick={() => navigate('practice')} icon={<ArrowRight size={14} />}>去练习</ActionButton></div></article>; })}</div>{visible.length === 0 ? <div className="mirror-empty"><Search size={21} /><p>没有匹配的错题。</p></div> : null}</div>;
-}
-
-function ExpressionPage({ navigate }: MirrorPageProps) {
-  const { state, dispatch } = useDemo();
-  const [selectedId, setSelectedId] = useState(state.expression.selectedId);
-  const source = EXPRESSION_FIXTURES.find(item => item.id === selectedId) || EXPRESSION_FIXTURES[0];
-  const draft = state.expression.drafts[source.id] || source.draft;
-  const accepted = state.expression.accepted.includes(source.id);
-  return <div className="mirror-page mirror-page--wide mirror-page--expression"><Tabs active="expression" navigate={navigate} tabs={[{ route: 'review', label: '间隔复习' }, { route: 'wrong-questions', label: '错题本' }, { route: 'expression', label: '主观表达' }]} /><PageHeader eyebrow="复盘中心" title="主观表达" description="原稿、采分点、重写和结项都留在同一条记录里。" navigate={navigate} action={<Pill tone="coral">需要人工确认的示例反馈</Pill>} /><SectionNav items={[{ id: 'expression-list', label: '待改进作答' }, { id: 'expression-task', label: '题目与采分点' }, { id: 'expression-feedback', label: '上一版反馈' }, { id: 'expression-rewrite', label: '下一版作答' }]} /><WorkflowContextBar title="主观表达上下文" detail="反馈只提供结构提示，最终判断仍由学习者在下一版作答中确认。" icon={<PenLine size={17} />} tone="coral" /><div className="mirror-expression-layout"><Panel id="expression-list" title="待改进作答" meta="选择一条进入详情"><div className="mirror-expression-list">{EXPRESSION_FIXTURES.map(item => <button type="button" key={item.id} className={source.id === item.id ? 'is-selected' : ''} onClick={() => { setSelectedId(item.id); dispatch({ type: 'select_expression', id: item.id }); }}><div><Pill tone={state.expression.accepted.includes(item.id) ? 'teal' : 'coral'}>{state.expression.accepted.includes(item.id) ? '已结项' : '待重写'}</Pill><strong>{item.taskType}</strong></div><p>{item.title}</p><small>重写 {state.expression.revisions[item.id] || item.revisions} 次 · {item.subject}</small><ChevronRight size={16} /></button>)}</div><div className="mirror-expression-queue"><span>当前队列</span><strong>2 条</strong><small>完成重写后回到计划</small></div></Panel><div className="mirror-expression-detail"><Panel id="expression-task" title="题目 / 任务" meta={source.source}><h2>{source.title}</h2><p>{source.prompt}</p><div className="mirror-reference"><div className="mirror-reference__head"><h3>可信采分点</h3><Pill tone="blue">固定示例</Pill></div><ol>{source.reference.map((item, index) => <li key={item}><span>{index + 1}</span>{item}</li>)}</ol></div></Panel><Panel id="expression-feedback" title="上一版作答与反馈" meta="反馈仅作学习对照"><div className="mirror-answer-quote"><span>原稿</span><p>{source.draft}</p></div><div className="mirror-feedback-box"><MessageSquareText size={17} /><div><strong>{source.feedback}</strong><p>反馈说明结构问题和下一步动作，不自动替代人工判断。</p></div></div></Panel><Panel id="expression-rewrite" title="亲自写出下一版" meta={`已重写 ${state.expression.revisions[source.id] || source.revisions} 次`}><textarea aria-label="主观表达重写" value={draft} onChange={event => dispatch({ type: 'edit_expression_draft', id: source.id, draft: event.target.value })} /><div className="mirror-expression-actions"><ActionButton onClick={() => dispatch({ type: 'save_expression_revision', id: source.id, draft })} icon={<Save size={15} />}>保存并生成示例反馈</ActionButton>{!accepted ? <ActionButton tone="secondary" onClick={() => dispatch({ type: 'accept_expression', id: source.id })} icon={<Check size={15} />}>接受当前版本并结项</ActionButton> : <Pill tone="teal">当前版本已结项</Pill>}<ActionButton tone="ghost" onClick={() => navigate('plan')} icon={<ArrowRight size={15} />}>回到计划</ActionButton></div></Panel></div></div></div>;
 }
 
 function ExamPage({ navigate }: MirrorPageProps) {
