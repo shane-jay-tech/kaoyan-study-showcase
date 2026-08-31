@@ -44,7 +44,7 @@ export function CaseStudyView() {
   const zipAvailable = zip.available && !offlinePackage;
 
   return (
-    <section className="view" aria-labelledby="case-study-title">
+    <section className="view case-study-view" aria-labelledby="case-study-title">
       <header className="view-header">
         <div>
           <h1 id="case-study-title" className="view-title">产品案例</h1>

@@ -164,6 +164,46 @@ test.describe('public showcase browser contract', () => {
     await expectRuntimeHealthy(page, diagnostics);
   });
 
+  test('matches the current-product shell and page primitive contract', async ({ page }) => {
+    const diagnostics = attachRuntimeDiagnostics(page);
+    await page.goto('#/today', { waitUntil: 'networkidle' });
+
+    if (test.info().project.name === 'desktop') {
+      const shell = await page.locator('.app-sidebar').evaluate(element => {
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        return { width: rect.width, background: style.backgroundColor };
+      });
+      expect(shell.width).toBe(240);
+      expect(shell.background).toBe('rgb(13, 22, 40)');
+      await expect(page.locator('.sidebar-nav__label')).toHaveText(['学习主路径', '工具']);
+      await expect(page.locator('.app-bottomnav')).toBeHidden();
+    } else {
+      await expect(page.locator('.app-topbar')).toBeVisible();
+      await expect(page.locator('.app-bottomnav')).toBeVisible();
+      expect(await page.locator('.app-topbar').evaluate(element => getComputedStyle(element).backgroundColor)).toContain('13, 22, 40');
+    }
+
+    await page.goto('#/plan', { waitUntil: 'networkidle' });
+    await expect(page.locator('.mirror-page--plan')).toBeVisible();
+    await expect(page.locator('.mirror-tabs')).toBeVisible();
+    await expect(page.locator('.mirror-section-nav')).toBeVisible();
+    await expect(page.locator('.mirror-workflow-context')).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+
+    const themeToggle = page.getByRole('button', { name: '切换到深色模式' }).first();
+    await themeToggle.click();
+    await expect(page.locator('html')).toHaveClass(/dark/);
+    expect(await page.evaluate(() => localStorage.length)).toBe(0);
+    await expect(page.locator('.mirror-panel').first()).toHaveCSS('background-color', 'rgb(21, 30, 46)');
+    await page.getByRole('button', { name: '切换到亮色模式' }).first().click();
+    await expect(page.locator('html')).not.toHaveClass(/dark/);
+
+    expect(diagnostics.externalRequests).toEqual([]);
+    expect(diagnostics.consoleErrors).toEqual([]);
+    expect(diagnostics.pageErrors).toEqual([]);
+  });
+
   test('opens the grouped mobile drawer and keeps touch targets usable', async ({ page }) => {
     test.skip(test.info().project.name !== 'mobile', 'mobile-specific navigation contract');
     const diagnostics = attachRuntimeDiagnostics(page);
