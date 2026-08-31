@@ -2553,3 +2553,39 @@ html.dark .mirror-point-keywords i { border-color: #33465e; background: #1b2638;
   .mirror-track-card__progress { grid-column: 2; }
   .mirror-micro-lesson { margin-left: 0; }
 }
+
+/* Deep practice engine surfaces. */
+.mirror-focus-practice { border-color: #a7c8e8; background: #f4f9ff; }
+.mirror-focus-practice > div { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.mirror-focus-practice p { flex: 1; min-width: 220px; margin: 0; color: var(--color-ink-soft); font-size: 12px; }
+.mirror-count-options { display: flex; gap: 6px; }
+.mirror-count-options button { min-width: 48px; min-height: 36px; border: 1px solid var(--color-line); border-radius: 6px; background: var(--color-surface); color: var(--color-ink-soft); font-size: 12px; }
+.mirror-count-options button.is-active { border-color: var(--color-blue); background: var(--color-blue-soft); color: var(--color-blue); font-weight: 700; }
+.mirror-type-list > button.is-selected { border-color: var(--color-blue); background: #f4f9ff; }
+.mirror-type-icon--blue { background: var(--color-blue-soft); color: var(--color-blue); }
+.mirror-type-icon--teal { background: var(--color-teal-soft); color: var(--color-teal); }
+.mirror-type-icon--amber { background: var(--color-amber-soft); color: var(--color-amber); }
+.mirror-type-icon--coral { background: var(--color-coral-soft); color: var(--color-coral); }
+.mirror-practice-textarea { width: 100%; min-height: 120px; padding: 12px; border: 1px solid var(--color-line); border-radius: 8px; background: var(--color-surface); color: var(--color-ink); font-size: 14px; line-height: 1.6; resize: vertical; }
+.mirror-practice-textarea:disabled { background: var(--color-canvas); color: var(--color-muted); }
+.mirror-feedback .mirror-missed-points { margin-top: 9px; padding: 8px 10px; border-radius: 6px; background: #fdeee7; color: var(--color-coral); }
+.mirror-feedback .mirror-missed-points ul { margin-top: 5px; padding-left: 16px; list-style: disc; }
+.mirror-feedback .mirror-reference-answer { margin-top: 9px; padding: 8px 10px; border-radius: 6px; background: var(--color-surface); border: 1px solid var(--color-line); }
+.mirror-feedback .mirror-reference-answer p { margin-top: 4px; color: var(--color-ink-soft); }
+.mirror-keyboard-hint { margin: 9px 0 0; color: var(--color-muted); font-size: 11px; text-align: center; }
+.mirror-practice-review-list { display: grid; gap: 8px; }
+.mirror-practice-review-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px; border: 1px solid var(--color-line); border-radius: 8px; }
+.mirror-practice-review-item.is-correct { border-left: 3px solid var(--color-teal); }
+.mirror-practice-review-item.is-wrong { border-left: 3px solid var(--color-coral); }
+.mirror-practice-review-item > span { color: var(--color-muted); font-size: 11px; font-weight: 700; }
+.mirror-practice-review-item > div { flex: 1; min-width: 0; }
+.mirror-practice-review-item strong { display: block; font-size: 12px; }
+.mirror-practice-review-item p { margin-top: 3px; color: var(--color-muted); font-size: 11px; }
+.mirror-history-mini { display: grid; gap: 7px; }
+.mirror-history-mini > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 7px; border-bottom: 1px solid var(--color-line); font-size: 11px; }
+.mirror-history-mini > div:last-child { border-bottom: 0; padding-bottom: 0; }
+.mirror-history-mini strong { color: var(--color-teal); }
+.mirror-history-mini small { color: var(--color-muted); }
+.mirror-practice-footer-note { display: flex; align-items: center; gap: 7px; color: var(--color-muted); font-size: 11px; }
+html.dark .mirror-focus-practice { border-color: #355678; background: #16283f; }
+html.dark .mirror-feedback .mirror-reference-answer { background: #1b2638; border-color: #33465e; }

@@ -212,6 +212,49 @@ test.describe('public showcase browser contract', () => {
     await expectRuntimeHealthy(page, diagnostics);
   });
 
+  test('keeps multi, short, and verbatim practice sessions deterministic', async ({ page }) => {
+    const diagnostics = attachRuntimeDiagnostics(page);
+
+    // Multi-choice: exact combination grading.
+    await page.goto('#/practice', { waitUntil: 'networkidle' });
+    await page.getByLabel('选择题型').selectOption('多选题');
+    await page.getByRole('button', { name: '开始练习' }).click();
+    const firstQuestion = page.locator('.mirror-question-panel');
+    await firstQuestion.locator('.mirror-answer').nth(0).click();
+    await firstQuestion.locator('.mirror-answer').nth(1).click();
+    await firstQuestion.locator('.mirror-answer').nth(3).click();
+    await page.getByRole('button', { name: '提交答案' }).click();
+    await expect(page.locator('.mirror-feedback')).toContainText('回答正确');
+    await page.getByRole('button', { name: '退出本轮' }).click();
+
+    // Short answer: scoring points feedback, no network AI.
+    await page.goto('#/practice', { waitUntil: 'networkidle' });
+    await page.getByLabel('选择题型').selectOption('简答题');
+    await page.getByRole('button', { name: '开始练习' }).click();
+    await page.getByLabel('练习作答').fill('分数提高不能直接证明因果，因为缺少对照，样本范围也有限制。');
+    await page.getByRole('button', { name: '提交答案' }).click();
+    await expect(page.locator('.mirror-feedback')).toContainText('示例评分');
+    await page.getByRole('button', { name: '下一题' }).click();
+    await page.getByLabel('练习作答').fill('可以观察指标：记录时间与作答，并说明测量方式。');
+    await page.getByRole('button', { name: '提交答案' }).click();
+    await page.getByRole('button', { name: '下一题' }).click();
+    await page.getByLabel('练习作答').fill('核心判断是策略有效，但样本限制使结论不能推广。');
+    await page.getByRole('button', { name: '提交答案' }).click();
+    await page.getByRole('button', { name: '查看本轮结果' }).click();
+    await expect(page.locator('.mirror-practice-review-list')).toContainText('需要再看一遍');
+    await page.getByRole('button', { name: '重新配置' }).click();
+
+    // Verbatim: expected lines are compared with the reference text.
+    await page.goto('#/practice', { waitUntil: 'networkidle' });
+    await page.getByLabel('选择题型').selectOption('默写训练');
+    await page.getByRole('button', { name: '开始练习' }).click();
+    await page.getByLabel('练习作答').fill('概念操作化：把抽象概念转化为可观察、可记录的指标，并说明记录方式。');
+    await page.getByRole('button', { name: '提交答案' }).click();
+    await expect(page.locator('.mirror-feedback')).toContainText('回答正确');
+
+    await expectRuntimeHealthy(page, diagnostics);
+  });
+
   test('matches the current-product shell and page primitive contract', async ({ page }) => {
     const diagnostics = attachRuntimeDiagnostics(page);
     await page.goto('#/today', { waitUntil: 'networkidle' });

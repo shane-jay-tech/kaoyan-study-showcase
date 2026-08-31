@@ -841,7 +841,7 @@ export function demoReducer(state: DemoState, action: DemoAction): DemoState {
       });
       return {
         ...state,
-        practice: { ...state.practice, phase: 'idle', history: [...state.practice.history, history], questions: [], answers: {} },
+        practice: { ...state.practice, phase: 'complete', history: [...state.practice.history, history] },
         wrongBook: additions.length ? [...state.wrongBook, ...additions] : state.wrongBook,
         studyStatuses: Object.fromEntries(questions.filter(question => {
           const answer = state.practice.answers[question.id];

@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
-  ClipboardCheck,
   Clock3,
   FileCheck2,
   FileQuestion,
@@ -20,7 +19,6 @@ import {
   History,
   Info,
   Lightbulb,
-  ListChecks,
   LockKeyhole,
   MessageSquareText,
   PenLine,
@@ -41,7 +39,6 @@ import {
   DIAGNOSIS_STEPS,
   EXAM_FIXTURES,
   EXPRESSION_FIXTURES,
-  SUBJECT_FILTERS,
   WRONG_QUESTION_FIXTURES,
 } from '../../data/public-source-mirror';
 import { useDemo } from '../../lib/demo-context';
@@ -49,10 +46,6 @@ import {
   selectActiveReviewItems,
   selectActivity,
   selectClearedReviewItems,
-  selectCurrentAnswerCorrect,
-  selectCurrentQuestion,
-  selectQuizPhase,
-  selectQuizResult,
   selectReviewSummary,
   type DemoAction,
   type DemoState,
@@ -62,10 +55,10 @@ import { MiniChart } from '../../components/MiniChart';
 
 import { DashboardLoop } from './pages/DashboardPage';
 import { PlanPage } from './pages/PlanPage';
+import { PracticePage } from './pages/PracticePage';
 import { StudyPage } from './pages/StudyPages';
 import {
   ActionButton,
-  ConfigSelect,
   Kpi,
   PageHeader,
   Panel,
@@ -82,41 +75,6 @@ import {
 } from './primitives';
 
 export interface MirrorPageProps { navigate: (route: Route) => void; }
-
-function PracticePage({ navigate }: MirrorPageProps) {
-  const { state, dispatch } = useDemo();
-  const phase = selectQuizPhase(state);
-  const question = selectCurrentQuestion(state);
-  const result = selectQuizResult(state);
-  const selectedCorrect = selectCurrentAnswerCorrect(state) === true;
-  const [sourceMode, setSourceMode] = useState('按题型抽题');
-  const [subject, setSubject] = useState('全部科目');
-  const [chapter, setChapter] = useState('当前重点章节');
-  const [questionType, setQuestionType] = useState('单选题');
-  const [amount, setAmount] = useState('3');
-
-  if (phase === 'complete') return <PracticeResult state={state} dispatch={dispatch} navigate={navigate} result={result} />;
-  if (state.quiz.started) return <PracticeSession state={state} dispatch={dispatch} navigate={navigate} question={question} selectedCorrect={selectedCorrect} />;
-
-  return <div className="mirror-page mirror-page--wide mirror-page--practice">
-    <Tabs active="practice" navigate={navigate} tabs={[{ route: 'practice', label: '按题型练习' }, { route: 'past-exams', label: '历年试题' }, { route: 'exam', label: '模拟考试' }]} />
-    <PageHeader eyebrow="练习中心" title="按题型练习" description="选择出题范围，开始一组可回到复盘的练习。" navigate={navigate} action={<Pill tone="blue">固定示例反馈</Pill>} />
-    <SectionNav items={[{ id: 'practice-config', label: '练习设置' }, { id: 'practice-types', label: '可用题型' }, { id: 'practice-after', label: '练习去向' }]} />
-    <WorkflowContextBar title="练习上下文" detail="范围、题型和数量只在本次演示中生效；提交后可回到结果与复盘。" icon={<SlidersHorizontal size={17} />} />
-    <div className="mirror-practice-layout"><Panel id="practice-config" className="mirror-practice-config" title="开始一组练习" meta="所有设置仅在本次演示中生效"><ConfigSelect label="出题方式" value={sourceMode} options={['按题型抽题', '按薄弱点抽题', '按章节顺序']} onChange={setSourceMode} /><ConfigSelect label="选择科目" value={subject} options={['全部科目', ...SUBJECT_FILTERS.slice(1)]} onChange={setSubject} /><ConfigSelect label="选择章节" value={chapter} options={['当前重点章节', '基础概念与研究框架', '研究设计与证据', '阅读结构识别']} onChange={setChapter} /><ConfigSelect label="选择题型" value={questionType} options={['单选题', '多选题', '简答题', '默写训练']} onChange={setQuestionType} /><div className="mirror-config-field"><label htmlFor="practice-amount">练习数量</label><div className="mirror-stepper"><button type="button" aria-label="减少题数" onClick={() => setAmount(value => String(Math.max(1, Number(value) - 1)))}>-</button><input id="practice-amount" value={amount} onChange={event => setAmount(event.target.value.replace(/[^0-9]/g, '').slice(0, 2) || '1')} inputMode="numeric" /><button type="button" aria-label="增加题数" onClick={() => setAmount(value => String(Math.min(20, Number(value) + 1)))}>+</button></div></div><ActionButton onClick={() => { dispatch({ type: 'start_practice', mode: questionType === '多选题' ? 'multi' : questionType === '简答题' ? 'short' : 'single' }); }} icon={<Play size={16} />}>开始练习</ActionButton><p className="mirror-note"><ShieldCheck size={14} />题目、答案和反馈来自本地固定示例，不连接在线服务。</p></Panel><div className="mirror-practice-side"><Panel id="practice-types" title="可用题型" meta="与当前系统入口对应"><div className="mirror-type-list">{[['单选题', CheckCircle2, '4 选 1 · 适合快速检查'], ['多选题', ListChecks, '精确选择全部正确项'], ['简答题', FileText, '按采分点查看结构反馈'], ['默写训练', ClipboardCheck, '对照关键点检查遗漏']].map(([label, Icon, detail]) => <div key={String(label)}><span className="mirror-type-icon"><Icon size={17} /></span><div><strong>{String(label)}</strong><p>{String(detail)}</p></div><ChevronRight size={15} /></div>)}</div></Panel><Panel id="practice-after" title="练习后的去向" meta="结果不会停在本页"><div className="mirror-route-list"><div><span>01</span><b>提交答案</b><small>看到固定解析和知识点</small></div><div><span>02</span><b>查看结果</b><small>错题可加入复习队列</small></div><div><span>03</span><b>回到计划</b><small>记录下一步证据</small></div></div></Panel></div></div>
-  </div>;
-}
-
-function PracticeSession({ state, dispatch, navigate, question, selectedCorrect }: { state: DemoState; dispatch: Dispatch<DemoAction>; navigate: (route: Route) => void; question: ReturnType<typeof selectCurrentQuestion>; selectedCorrect: boolean }) {
-  const submitted = state.quiz.submitted;
-  const isLast = state.quiz.index === 2;
-  return <div className="mirror-page mirror-page--runner mirror-page--practice-session"><PageHeader eyebrow="练习作答" title="练习进行中" description="提交后查看依据，再进入下一题；结果只用于本次公开演示。" navigate={navigate} action={<Pill tone="blue">第 {question.number} / 3 题</Pill>} /><div className="mirror-session-progress"><div><strong>第 {question.number} / 3 题</strong><span>{question.category} · {question.difficulty}</span></div><ProgressBar value={(question.number / 3) * 100} tone="blue" label={`${question.number}/3`} /></div><Panel className="mirror-question-panel"><div className="mirror-question-meta"><Pill tone="blue">{question.knowledgePoint}</Pill><span>{question.source}</span></div><h2>{question.prompt}</h2><fieldset className="mirror-answer-list" disabled={submitted}><legend className="sr-only">选择答案</legend>{question.options.map((option, index) => <label key={option} className={`mirror-answer${state.quiz.selectedIndex === index ? ' is-selected' : ''}${submitted && index === question.correctIndex ? ' is-correct' : ''}${submitted && state.quiz.selectedIndex === index && index !== question.correctIndex ? ' is-wrong' : ''}`}><input type="radio" name="mirror-answer" checked={state.quiz.selectedIndex === index} onChange={() => dispatch({ type: 'select_answer', index })} data-testid={`practice-option-${index}`} /><span className="mirror-answer__letter">{String.fromCharCode(65 + index)}</span><span>{option}</span>{submitted && index === question.correctIndex ? <CheckCircle2 size={17} /> : null}</label>)}</fieldset>{submitted ? <div className={`mirror-feedback ${selectedCorrect ? 'is-correct' : 'is-wrong'}`} role="status" aria-live="polite"><div><strong>{selectedCorrect ? '回答正确' : '这次需要再看一遍'}</strong><span>{selectedCorrect ? '已记录为一次有效作答' : `正确答案：${question.answer}`}</span></div><p>{question.explanation}</p><small>关联知识区：{question.knowledgePoint}</small></div> : <p className="mirror-note">选择一个答案后提交，系统会给出固定的解释与关联知识区。</p>}<div className="mirror-session-actions">{!submitted ? <ActionButton disabled={state.quiz.selectedIndex === null} onClick={() => dispatch({ type: 'submit_answer' })} icon={<Check size={15} />}>提交答案</ActionButton> : <ActionButton onClick={() => dispatch({ type: 'advance_question' })} icon={<ArrowRight size={15} />}>{isLast ? '查看本轮结果' : '下一题'}</ActionButton>}<ActionButton tone="ghost" onClick={() => dispatch({ type: 'retry_quiz' })} icon={<RotateCcw size={15} />}>重新开始</ActionButton></div></Panel></div>;
-}
-
-function PracticeResult({ state, dispatch, navigate, result }: { state: DemoState; dispatch: Dispatch<DemoAction>; navigate: (route: Route) => void; result: ReturnType<typeof selectQuizResult> }) {
-  const canAdd = result.missed > 0 && !state.quiz.reviewAdded;
-  return <div className="mirror-page mirror-page--runner mirror-page--practice-result"><PageHeader eyebrow="练习结果" title="本轮答题回顾" description="结果会指出下一步需要复测或继续巩固的内容。" navigate={navigate} action={<Pill tone="teal">固定示例结果</Pill>} /><Panel className="mirror-result-panel"><div className={`mirror-result-icon ${result.missed === 0 ? 'is-good' : 'is-alert'}`}>{result.missed === 0 ? <Check size={30} /> : <AlertTriangle size={30} />}</div><h2>完成 {result.total} 道练习</h2><div className="mirror-result-score"><strong>{result.score}</strong><span> / {result.maxScore} 题答对</span></div><p>{result.missed === 0 ? '本轮没有错题，可以继续保持并在稍后复测。' : `有 ${result.missed} 道题需要再看一遍，加入复习队列后会保留复测记录。`}</p><div className="mirror-result-grid"><Kpi label="已作答" value={`${result.answered}/${result.total}`} tone="ink" /><Kpi label="待复测" value={result.missed} tone="amber" /><Kpi label="反馈状态" value="已生成" hint="固定示例" tone="teal" /></div><div className="mirror-result-actions">{result.missed > 0 ? <ActionButton disabled={!canAdd} onClick={() => dispatch({ type: 'add_missed_to_review' })} icon={<RotateCcw size={15} />}>{state.quiz.reviewAdded ? '已加入复习' : '加入复习队列'}</ActionButton> : null}{state.quiz.reviewAdded ? <ActionButton tone="secondary" onClick={() => navigate('review')} icon={<ArrowRight size={15} />}>查看复习队列</ActionButton> : null}<ActionButton tone="secondary" onClick={() => dispatch({ type: 'retry_quiz' })} icon={<RefreshCw size={15} />}>再练一组</ActionButton></div></Panel></div>;
-}
 
 function PastExamsPage({ navigate }: MirrorPageProps) {
   const [filter, setFilter] = useState('全部模块');

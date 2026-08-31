@@ -1,4 +1,4 @@
-import type { Dispatch, ReactNode } from 'react';
+import { useId, type Dispatch, type ReactNode } from 'react';
 import {
   ArrowRight,
   BrainCircuit,
@@ -138,7 +138,8 @@ export function TaskRow({ task, dispatch, navigate, compact = false }: { task: D
 }
 
 export function ConfigSelect({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
-  return <div className="mirror-config-field"><label>{label}</label><select value={value} onChange={event => onChange(event.target.value)}>{options.map(option => <option key={option}>{option}</option>)}</select></div>;
+  const id = useId();
+  return <div className="mirror-config-field"><label htmlFor={id}>{label}</label><select id={id} value={value} onChange={event => onChange(event.target.value)}>{options.map(option => <option key={option}>{option}</option>)}</select></div>;
 }
 
 export function KnowledgePointRow({ point, status, dispatch }: { point: KnowledgePoint; status: KnowledgeStatus; dispatch: Dispatch<DemoAction> }) {
