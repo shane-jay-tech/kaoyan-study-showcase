@@ -190,6 +190,28 @@ test.describe('public showcase browser contract', () => {
     await expectRuntimeHealthy(page, diagnostics);
   });
 
+  test('keeps study tracks driven by knowledge points and micro lessons', async ({ page }) => {
+    const diagnostics = attachRuntimeDiagnostics(page);
+    await page.goto('#/study', { waitUntil: 'networkidle' });
+    const languageCard = page.locator('.mirror-track-card').filter({ hasText: '语言训练' });
+    await expect(languageCard).toContainText('已掌握');
+    await languageCard.click();
+    await expect(page).toHaveURL(/#\/study-language$/);
+
+    const pointEntry = page.locator('.mirror-point-entry').filter({ hasText: '语境中的词义' });
+    await pointEntry.getByRole('button', { name: '查看微课与掌握路径' }).click();
+    await pointEntry.getByRole('button', { name: '完成微课核对' }).click();
+    await expect(pointEntry).toContainText('已核对，可再次查看');
+
+    const search = page.getByLabel('搜索知识点');
+    await search.fill('词义');
+    await expect(page.locator('.mirror-point-entry')).toHaveCount(1);
+
+    await pointEntry.getByRole('button', { name: '去验证掌握' }).click();
+    await expect(page).toHaveURL(/#\/practice$/);
+    await expectRuntimeHealthy(page, diagnostics);
+  });
+
   test('matches the current-product shell and page primitive contract', async ({ page }) => {
     const diagnostics = attachRuntimeDiagnostics(page);
     await page.goto('#/today', { waitUntil: 'networkidle' });

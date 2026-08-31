@@ -2523,3 +2523,33 @@ html.dark .mirror-workflow-context--amber { background: #3d2e0a; border-color: #
 .mirror-page--dashboard .mirror-focus-grid > .mirror-panel,
 .mirror-page--dashboard .mirror-dashboard-capacity-zone > .mirror-panel { height: 100%; }
 .mirror-page--plan .mirror-section-nav { margin-bottom: 0; }
+
+/* Deep study track surfaces. */
+.mirror-track-card { grid-template-columns: 38px minmax(0,1fr) minmax(110px,150px); }
+.mirror-track-card__progress { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.mirror-track-card__progress .mirror-progress-wrap { flex: 1; }
+.mirror-track-card__progress > svg { flex: 0 0 auto; color: var(--color-muted); }
+.mirror-point-entry { border-top: 1px solid var(--color-line); }
+.mirror-point-entry:first-child { border-top: 0; }
+.mirror-point-row { border-top: 0; }
+.mirror-point-row__title { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.mirror-point-row__actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.mirror-point-keywords { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+.mirror-point-keywords i { padding: 1px 7px; border: 1px solid var(--color-line); border-radius: 999px; background: var(--color-canvas); color: var(--color-muted); font-style: normal; font-size: 10px; }
+.mirror-micro-lesson { margin: 0 0 12px 41px; padding: 12px; border: 1px solid #cbd8e7; border-left: 3px solid var(--color-blue); border-radius: 8px; background: #f7faff; }
+.mirror-micro-lesson__head { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+.mirror-micro-lesson__head strong { font-size: 13px; }
+.mirror-micro-lesson__head span { color: var(--color-muted); font-size: 10px; }
+.mirror-micro-lesson ol { display: grid; gap: 6px; margin: 11px 0 0; padding: 0; list-style: none; }
+.mirror-micro-lesson ol li { display: flex; gap: 8px; color: var(--color-ink-soft); font-size: 12px; }
+.mirror-micro-lesson ol li span { display: grid; place-items: center; width: 18px; height: 18px; flex: 0 0 18px; border-radius: 50%; background: var(--color-blue-soft); color: var(--color-blue); font-size: 10px; font-weight: 700; }
+.mirror-micro-lesson__check { display: flex; align-items: flex-start; gap: 6px; margin-top: 9px; color: var(--color-teal); font-size: 11px; }
+.mirror-micro-lesson__check svg { flex: 0 0 auto; margin-top: 1px; }
+.mirror-micro-lesson .btn { min-height: 34px; padding: 0 10px; font-size: 11px; }
+html.dark .mirror-micro-lesson { border-color: #355678; background: #16283f; }
+html.dark .mirror-point-keywords i { border-color: #33465e; background: #1b2638; }
+@media (max-width: 820px) {
+  .mirror-track-card { grid-template-columns: 34px minmax(0,1fr); }
+  .mirror-track-card__progress { grid-column: 2; }
+  .mirror-micro-lesson { margin-left: 0; }
+}

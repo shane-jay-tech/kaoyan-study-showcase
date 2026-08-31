@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Archive,
-  BookOpen,
   Brain,
   Check,
   CheckCircle2,
@@ -18,10 +17,8 @@ import {
   FileText,
   Filter,
   Flag,
-  GraduationCap,
   History,
   Info,
-  Languages,
   Lightbulb,
   ListChecks,
   LockKeyhole,
@@ -44,9 +41,6 @@ import {
   DIAGNOSIS_STEPS,
   EXAM_FIXTURES,
   EXPRESSION_FIXTURES,
-  KNOWLEDGE_POINTS,
-  STUDY_CHAPTERS,
-  STUDY_TRACKS,
   SUBJECT_FILTERS,
   WRONG_QUESTION_FIXTURES,
 } from '../../data/public-source-mirror';
@@ -60,21 +54,19 @@ import {
   selectQuizPhase,
   selectQuizResult,
   selectReviewSummary,
-  selectStudyStatus,
   type DemoAction,
   type DemoState,
-  type KnowledgeStatus,
   type Route,
 } from '../../lib/demo-state';
 import { MiniChart } from '../../components/MiniChart';
 
 import { DashboardLoop } from './pages/DashboardPage';
 import { PlanPage } from './pages/PlanPage';
+import { StudyPage } from './pages/StudyPages';
 import {
   ActionButton,
   ConfigSelect,
   Kpi,
-  KnowledgePointRow,
   PageHeader,
   Panel,
   Pill,
@@ -90,30 +82,6 @@ import {
 } from './primitives';
 
 export interface MirrorPageProps { navigate: (route: Route) => void; }
-
-function StudyPage({ navigate, trackId }: MirrorPageProps & { trackId?: string }) {
-  const { state, dispatch } = useDemo();
-  const [statusFilter, setStatusFilter] = useState<'all' | KnowledgeStatus>('all');
-  const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
-  const selectedTrack = trackId || 'professional';
-  const track = STUDY_TRACKS.find(item => item.id === selectedTrack) || STUDY_TRACKS[0];
-  const chapters = STUDY_CHAPTERS.filter(chapter => chapter.trackId === selectedTrack);
-  const points = KNOWLEDGE_POINTS.filter(point => chapters.some(chapter => chapter.id === point.chapterId));
-  const total = chapters.reduce((sum, chapter) => sum + chapter.points, 0);
-  const mastered = chapters.reduce((sum, chapter) => sum + chapter.mastered, 0);
-  const selectedPointCount = points.filter(point => statusFilter === 'all' || selectStudyStatus(state, point.id) === statusFilter).length;
-
-  return <div className="mirror-page mirror-page--wide mirror-page--study">
-    <Tabs active={track.route as Route} navigate={navigate} tabs={[{ route: 'study', label: '学习中心' }, ...STUDY_TRACKS.map(item => ({ route: item.route as Route, label: item.label }))]} />
-    <PageHeader eyebrow="学习中心" title={trackId ? track.label : '学习'} description={track.detail} navigate={navigate} action={<Pill tone={track.tone as Tone}>{track.meta}</Pill>} />
-    <SectionNav items={[{ id: 'study-chapters', label: '章节进度', badge: chapters.length }, { id: 'study-points', label: '知识点状态', badge: selectedPointCount }]} />
-    <WorkflowContextBar title={`${track.label}学习上下文`} detail="从章节进度进入知识点，再用状态变化记录掌握证据。" icon={<BookOpen size={17} />} tone="teal" />
-    {!trackId ? <div className="mirror-track-cards">{STUDY_TRACKS.map(item => <button type="button" key={item.id} className={`mirror-track-card mirror-track-card--${item.tone}`} onClick={() => navigate(item.route as Route)}><div className="mirror-track-card__icon">{item.id === 'professional' ? <GraduationCap size={21} /> : item.id === 'language' ? <Languages size={21} /> : <BookOpen size={21} />}</div><div><strong>{item.label}</strong><p>{item.detail}</p><span>{item.meta}</span></div><ChevronRight size={18} /></button>)}</div> : null}
-    <div className="mirror-study-summary"><Kpi label="章节知识点" value={total} hint="当前轨道" tone="blue" /><Kpi label="已掌握" value={mastered} hint={`${Math.round((mastered / Math.max(1, total)) * 100)}%`} tone="teal" /><Kpi label="学习中" value={chapters.reduce((sum, chapter) => sum + chapter.learning, 0)} hint="需要继续练习" tone="ink" /><Kpi label="微课覆盖" value={`${chapters.reduce((sum, chapter) => sum + chapter.microLessons, 0)} 节`} hint="固定示例" tone="amber" /></div>
-    <Panel id="study-chapters" title={`${track.label} · 章节`} meta="从章节进入知识点与微课"><div className="mirror-chapter-grid">{chapters.map(chapter => { const progress = Math.round((chapter.mastered / chapter.points) * 100); const expanded = expandedChapter === chapter.id; return <article className={`mirror-chapter-card${expanded ? ' is-expanded' : ''}`} key={chapter.id}><button type="button" className="mirror-chapter-card__head" onClick={() => setExpandedChapter(expanded ? null : chapter.id)}><div><Pill tone={chapter.status === 'active' ? 'blue' : chapter.status === 'done' ? 'teal' : 'muted'}>{chapter.status === 'active' ? '学习中' : chapter.status === 'done' ? '已完成' : '待进入'}</Pill><h3>{chapter.title}</h3><p>{chapter.subtitle}</p></div><ChevronDown size={17} className={expanded ? 'rotate-180' : ''} /></button><div className="mirror-chapter-progress"><ProgressBar value={progress} tone={chapter.status === 'active' ? 'blue' : 'teal'} label={`${chapter.mastered}/${chapter.points} 已掌握`} /></div><div className="mirror-chapter-meta"><span>学习中 {chapter.learning}</span><span>需复习 {chapter.review}</span><span>微课 {chapter.microLessons} 节</span></div>{expanded ? <div className="mirror-chapter-detail"><p>本章按“理解 → 练习 → 复测 → 掌握验证”推进。先完成一条有效作答，再决定是否进入下一章。</p><ActionButton tone="secondary" onClick={() => navigate('study-professional')} icon={<BookOpen size={14} />}>打开章节详情</ActionButton></div> : null}</article>; })}</div></Panel>
-    <Panel id="study-points" title="知识点状态" meta={`${selectedPointCount} 条示例记录`}><div className="mirror-filter-row" role="group" aria-label="按掌握状态筛选">{([['all', '全部'], ['unseen', '未学习'], ['learning', '学习中'], ['review', '需复习'], ['mastered', '已掌握']] as const).map(([value, label]) => <button type="button" key={value} className={statusFilter === value ? 'is-active' : ''} aria-pressed={statusFilter === value} onClick={() => setStatusFilter(value)}>{label}</button>)}</div><div className="mirror-point-list">{points.filter(point => statusFilter === 'all' || selectStudyStatus(state, point.id) === statusFilter).map(point => <KnowledgePointRow key={point.id} point={point} status={selectStudyStatus(state, point.id)} dispatch={dispatch} />)}</div>{points.filter(point => statusFilter === 'all' || selectStudyStatus(state, point.id) === statusFilter).length === 0 ? <div className="mirror-empty"><Info size={20} /><p>当前筛选没有知识点。</p></div> : null}</Panel>
-  </div>;
-}
 
 function PracticePage({ navigate }: MirrorPageProps) {
   const { state, dispatch } = useDemo();
