@@ -1,7 +1,7 @@
 # 当前产品视觉忠实复刻与全量脱敏
 
 日期：2026-08-31
-状态：已获用户确认，进入执行
+状态：已验证并发布（GitHub Pages）
 
 ## 原始需求
 
@@ -49,3 +49,13 @@
 - 模型参与：总指挥完成源码基线、设计决策和计划；未声称其他模型参与。
 - 评审结果：设计与计划自审通过；无 BLOCKER/CRITICAL 结论。
 - 当前执行路线：inline，原因是多个路由共享同一 `MirrorPages.tsx` 与 `styles.css`，串行 owner 变更更可控。
+
+## 最终验证记录
+
+- 本地回归：`npm.cmd run typecheck`、`npm.cmd run lint`、`npm.cmd test`（31 tests）、`npm.cmd run test:browser`（9 passed，1 intentional desktop skip）和 `npm.cmd run build` 均通过。
+- 交付物：PDF 5 页且可选文本，ZIP 离线包可解压并启动；`npm.cmd run verify:artifacts` 全部检查通过。
+- 脱敏：`npm.cmd run audit:privacy` 在源码、dist、PDF 文本、ZIP 清单/内容共 74 个文本面通过；截图 OCR 因环境缺少 `tesseract + chi_sim` 如实记为 SKIP。
+- 线上：GitHub Actions run `33410145708` 成功，部署 job `99547571982` 成功；桌面/移动线上 17 路由均可见、无外部请求、无控制台或页面错误、无横向溢出。
+- 线上附件：manifest、PDF、ZIP 与本地最终构建哈希一致；线上 PDF `631536` bytes，ZIP `2124587` bytes。
+- 适用性：公开镜像无敏感数据路径，认证、迁移、readiness 检查均为 `NOT APPLICABLE`，没有伪造通过结果。
+- 残余风险：没有授权的私有系统登录态渲染截图，因此无法完成像素级私有页面对照；当前视觉结论基于只读源码基线、公开 DOM/截图和尺寸/token 断言。
