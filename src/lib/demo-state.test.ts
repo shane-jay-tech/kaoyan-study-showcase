@@ -19,6 +19,7 @@ import {
   type DemoState,
 } from './demo-state';
 import { daysUntil, formatMinutes, formatPercent } from './format';
+import { EXAM_FIXTURES } from '../data/public-source-mirror';
 
 function reduce(state: DemoState, ...actions: DemoAction[]): DemoState {
   return actions.reduce(demoReducer, state);
@@ -58,9 +59,9 @@ describe('demo state', () => {
     const state = createInitialState();
     const next = demoReducer(state, { type: 'complete_task', id: 'task-method-01' });
     expect(next.tasks.find(task => task.id === 'task-method-01')?.status).toBe('done');
-    expect(selectDashboardMetrics(next).completedMinutes).toBe(55);
-    expect(selectPlanSummary(next).remainingMinutes).toBe(100);
-    expect(selectPlanSummary(next).capacityMinutes).toBe(180);
+    expect(selectDashboardMetrics(next).completedMinutes).toBe(65);
+    expect(selectPlanSummary(next).remainingMinutes).toBe(110);
+    expect(selectPlanSummary(next).capacityMinutes).toBe(240);
   });
 
   it('ignores invalid task and answer transitions', () => {
@@ -220,7 +221,7 @@ describe('demo state', () => {
 
 describe('fixture generalization', () => {
   it('exports the required public demo label', () => {
-    expect(PUBLIC_DEMO_LABEL).toBe('公开演示 · 虚构数据');
+    expect(PUBLIC_DEMO_LABEL).toBe('公开镜像 · 脱敏演示');
   });
 
   it('contains no prohibited identifiers, paths, or secrets', () => {
@@ -267,6 +268,49 @@ describe('fixture generalization', () => {
     expect(statuses).toContain('due');
     expect(statuses).toContain('watch');
     expect(statuses).toContain('cleared');
+  });
+});
+
+describe('extended mirror workflows', () => {
+  it('restores a draft at its next unanswered question and keeps counts honest', () => {
+    let state = createInitialState();
+    state = demoReducer(state, { type: 'start_exam', id: 'exam-sprint-01' });
+    expect(state.exam.phase).toBe('draft');
+    expect(state.exam.answered).toBe(EXAM_FIXTURES[0].answered);
+    expect(state.exam.currentIndex).toBe(EXAM_FIXTURES[0].answered);
+
+    state = demoReducer(state, { type: 'answer_exam', index: state.exam.currentIndex });
+    expect(state.exam.answered).toBe(8);
+    state = demoReducer(state, { type: 'advance_exam' });
+    expect(state.exam.currentIndex).toBe(8);
+    expect(state.exam.answered).toBe(8);
+  });
+
+  it('opens a finished exam as a result and rejects invalid exam transitions', () => {
+    const initial = createInitialState();
+    const finished = demoReducer(initial, { type: 'start_exam', id: 'exam-weekly-02' });
+    expect(finished.exam.phase).toBe('submitted');
+    expect(finished.exam.answered).toBe(12);
+    expect(demoReducer(initial, { type: 'start_exam', id: 'missing' })).toBe(initial);
+    expect(demoReducer(finished, { type: 'answer_exam', index: 0 })).toBe(finished);
+  });
+
+  it('separates expression editing from a saved revision', () => {
+    const initial = createInitialState();
+    const initialRevision = initial.expression.revisions['expression-01'];
+    const edited = demoReducer(initial, { type: 'edit_expression_draft', id: 'expression-01', draft: '新的结构草稿' });
+    expect(edited.expression.drafts['expression-01']).toBe('新的结构草稿');
+    expect(edited.expression.revisions['expression-01']).toBe(initialRevision);
+    const saved = demoReducer(edited, { type: 'save_expression_revision', id: 'expression-01', draft: '新的结构草稿' });
+    expect(saved.expression.revisions['expression-01']).toBe(initialRevision + 1);
+  });
+
+  it('keeps extended actions idempotent for unknown records', () => {
+    const initial = createInitialState();
+    expect(demoReducer(initial, { type: 'set_study_status', id: 'missing', status: 'mastered' })).toBe(initial);
+    expect(demoReducer(initial, { type: 'resolve_wrong_question', id: 'missing' })).toBe(initial);
+    expect(demoReducer(initial, { type: 'approve_content', id: 'missing' })).toBe(initial);
+    expect(demoReducer(initial, { type: 'select_expression', id: 'missing' })).toBe(initial);
   });
 });
 

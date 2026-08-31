@@ -1,12 +1,33 @@
 import { Download, FileDown, PackageOpen } from 'lucide-react';
-import caseStudyContent from '../../data/case-study-content.json';
+import rawCaseStudyContent from '../../data/case-study-content.json';
 import { RELEASE_ARTIFACTS } from '../../data/release-artifacts';
 import { formatBytes } from '../../lib/format';
 
+type CaseStudySection = {
+  id: string;
+  number: string;
+  title: string;
+  paragraphs: string[];
+  bullets?: string[];
+  table?: { columns: string[]; rows: string[][] };
+  guardrails?: string[];
+};
+
+type CaseStudyContent = {
+  productName: string;
+  publicLabel: string;
+  publicUrl: string;
+  hero: { kicker: string; title: string; summary: string };
+  sections: CaseStudySection[];
+  downloads: { heading: string; notes: string[] };
+};
+
+const caseStudyContent = rawCaseStudyContent as CaseStudyContent;
+
 const SCREENSHOTS = [
-  { fileName: 'desktop-dashboard.png', alt: '桌面端「今日」视图截图（虚构数据）' },
-  { fileName: 'mobile-practice.png', alt: '移动端「练习」视图截图（虚构数据）' },
-  { fileName: 'review-flow.png', alt: '「复习」视图截图（虚构数据）' },
+  { fileName: 'desktop-dashboard.png', alt: '桌面端「今日」视图截图（脱敏固定示例）' },
+  { fileName: 'mobile-practice.png', alt: '移动端「练习」视图截图（脱敏固定示例）' },
+  { fileName: 'review-flow.png', alt: '「复习」视图截图（脱敏固定示例）' },
 ] as const;
 
 function downloadUrl(fileName: string): string {
@@ -40,7 +61,7 @@ export function CaseStudyView() {
       </div>
 
       {screenshots.available ? (
-        <div className="card case-shots" aria-label="产品界面截图（虚构数据）">
+        <div className="card case-shots" aria-label="产品界面截图（脱敏固定示例）">
           <div className="card__header">
             <h2 className="card__title">界面形态</h2>
             <span className="card__meta">由本站构建产物生成的截图</span>
@@ -100,7 +121,7 @@ export function CaseStudyView() {
               </table>
             </div>
           ) : null}
-          {section.id === 'ai-map' && guardrails.length > 0 ? (
+          {guardrails.length > 0 ? (
             <ul className="case-section__bullets case-guardrails">
               {guardrails.map(guardrail => (
                 <li key={guardrail}>

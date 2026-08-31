@@ -40,10 +40,10 @@ const HELPER = join(PROJECT_ROOT, 'scripts', 'release-helper.py');
 const PDF_FILE_NAME = '考研智学系统-产品案例.pdf';
 const ZIP_FILE_NAME = '考研智学系统-交互演示包.zip';
 
-const README_ZIP = `# 考研智学系统 · 交互演示包
+const README_ZIP = `# 考研学习工作台 · 交互演示包
 
 这是一个完全离线的公开演示包：运行它不需要网络、后端、数据库或 AI 服务。
-包内全部数据为虚构合成内容，不包含任何真实学校、专业、成绩、学习历史、
+包内全部数据为泛化固定示例，不包含任何真实机构、方向、成绩、学习历史、
 联系方式、凭据或私有系统数据。
 
 ## 内容清单

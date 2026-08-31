@@ -7,7 +7,7 @@
  *   2. Serves dist/ on 127.0.0.1:4180 and captures three screenshots of the
  *      built app with Playwright/Chromium (desktop dashboard, mobile
  *      practice feedback state, review queue).
- *   3. Builds a six-page A4 print template from the shared case-study
+ *   3. Builds a compact A4 print template from the shared case-study
  *      content (src/data/case-study-content.json) plus those screenshots,
  *      and renders it to PDF via Chromium's print pipeline (selectable
  *      text, embedded local images, page numbers, visible public URL).
@@ -89,7 +89,7 @@ async function captureScreenshots(browser) {
   const desktop = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const desktopPage = await desktop.newPage();
   await desktopPage.goto(`${SITE_ORIGIN}/#/today`, { waitUntil: 'networkidle' });
-  await desktopPage.locator('.metric-strip').waitFor({ state: 'visible' });
+  await desktopPage.locator('.mirror-kpi-grid').waitFor({ state: 'visible' });
   const desktopShot = join(SCREENSHOTS_PUBLIC, 'desktop-dashboard.png');
   await desktopPage.screenshot({ path: desktopShot, fullPage: true });
   await desktop.close();
@@ -101,9 +101,10 @@ async function captureScreenshots(browser) {
   await mobilePage.goto(`${SITE_ORIGIN}/#/practice`, { waitUntil: 'networkidle' });
   // Native label activation toggles the radio; the marker span inside the
   // label would otherwise intercept a direct click on the input.
-  await mobilePage.locator('label.practice-option').nth(1).click();
-  await mobilePage.getByTestId('practice-submit').click();
-  await mobilePage.locator('.practice-feedback').waitFor({ state: 'visible' });
+  await mobilePage.getByRole('button', { name: '开始练习' }).click();
+   await mobilePage.locator('.mirror-answer').nth(1).click();
+  await mobilePage.getByRole('button', { name: '提交答案' }).click();
+  await mobilePage.locator('.mirror-feedback').waitFor({ state: 'visible' });
   const mobileShot = join(SCREENSHOTS_PUBLIC, 'mobile-practice.png');
   await mobilePage.screenshot({ path: mobileShot, fullPage: true });
   await mobile.close();
@@ -142,7 +143,7 @@ function buildPrintTemplate() {
         <tbody>${section.table.rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
       </table>`;
     }
-    const guardrails = section.id === 'ai-map' && section.guardrails
+    const guardrails = section.guardrails
       ? `<ul class="guardrails">${section.guardrails.map(g => `<li>${escapeHtml(g)}</li>`).join('')}</ul>`
       : '';
     const breakClass = section.number === '03' || section.number === '07' ? ' page-break' : '';
@@ -159,7 +160,7 @@ function buildPrintTemplate() {
   const shotFigures = screenshots.map(shot => `
     <figure>
       <img src="${SITE_ORIGIN}/screenshots/${shot.name}" alt="${escapeHtml(shot.alt)}" />
-      <figcaption>${escapeHtml(shot.alt)}（虚构数据）</figcaption>
+      <figcaption>${escapeHtml(shot.alt)}（脱敏固定示例）</figcaption>
     </figure>`).join('');
 
   return `<!doctype html>
@@ -222,7 +223,7 @@ function buildPrintTemplate() {
     <ul>${caseStudyContent.downloads.notes.map(note => `<li>${escapeHtml(note)}</li>`).join('')}</ul>
     <p class="foot-note">
       在线体验：<a href="${caseStudyContent.publicUrl}">${caseStudyContent.publicUrl}</a> ·
-      本 PDF 与配套 ZIP 仅包含本公开项目内容：虚构数据、本站生成截图与通用技术描述。
+      本 PDF 与配套 ZIP 仅包含本公开项目内容：脱敏固定示例、本站生成截图与通用技术描述。
       不包含任何私有系统数据、真实学校/专业/成绩、联系方式、凭据或绝对路径。
     </p>
   </section>
