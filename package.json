@@ -1,0 +1,42 @@
+{
+  "name": "kaoyan-study-showcase",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A privacy-safe interactive postgraduate study system case showcase.",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run src",
+    "test:watch": "vitest src",
+    "test:browser": "playwright test",
+    "audit:privacy": "node scripts/privacy-audit.mjs",
+    "generate:case-study": "node scripts/generate-case-study.mjs",
+    "package:demo": "node scripts/package-demo.mjs",
+    "verify:artifacts": "node scripts/verify-artifacts.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "^1.37.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.1",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^6.1.1",
+    "eslint": "^10.9.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.68.0",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
+  }
+}

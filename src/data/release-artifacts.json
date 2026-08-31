@@ -1,0 +1,15 @@
+{
+  "pdf": {
+    "fileName": "考研智学系统-产品案例.pdf",
+    "available": true,
+    "sizeBytes": 520330
+  },
+  "zip": {
+    "fileName": "考研智学系统-交互演示包.zip",
+    "available": true,
+    "sizeBytes": 1495503
+  },
+  "screenshots": {
+    "available": true
+  }
+}
