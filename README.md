@@ -1,9 +1,42 @@
-# 考研学习工作台 · 公开镜像站（kaoyan-study-showcase）
+# 考研学习工作台 · 公开镜像站
 
-一个完全隔离、隐私安全的交互式考研学习工作台公开演示。页面内的全部数据均为虚构合成内容，不包含任何真实学校、专业、分数、学习历史、路径或凭据；运行时无后端、无数据库、无账号体系、无 AI 调用、无第三方网络请求。
+一个完全隔离、隐私安全的交互式考研学习工作台公开演示，面向产品展示与招聘面试案例。页面内全部数据均为虚构合成内容，不包含任何真实学校、专业、分数、学习历史、路径或凭据；运行时无后端、无数据库、无账号体系、无 AI 调用、无第三方网络请求。
 
 - 公开地址：https://shane-jay-tech.github.io/kaoyan-study-showcase/
 - 交付物：交互网页 · PDF 产品案例 · ZIP 离线演示包
+- 上游关系：视觉与流程忠实镜像本地私有系统 `kaoyan-system`，但数据、状态与运行边界完全隔离
+
+## 技术架构
+
+- React 19 + TypeScript + Vite
+- Vitest 单元测试 + Playwright 浏览器回归
+- Lucide 图标、纯 CSS / SVG 图表
+- GitHub Pages 静态托管，hash 路由支持任意静态服务器深链直达
+- 内存态演示：状态仅存于内存，刷新页面即回到初始合成场景，不写任何持久化存储
+
+## 环境要求
+
+- Node.js ≥ 20.19.0
+- npm
+- 产物生成脚本的可选依赖：Playwright Chromium、PyMuPDF（`release-helper.py`）
+
+安装依赖：
+
+```bash
+npm install
+```
+
+## 本地开发与验证
+
+```bash
+npm run dev        # 本地开发服务器
+npm run typecheck  # TypeScript 类型检查
+npm run lint       # ESLint 代码检查
+npm test           # Vitest 单元测试
+npm run test:browser # Playwright 浏览器流程
+npm run build      # 生产构建（base 为 /kaoyan-study-showcase/）
+npm run preview    # 本地预览构建产物
+```
 
 ## 功能视图
 
@@ -18,35 +51,14 @@
 | 系统与目标 | 目标容量、只读健康、考试草稿和内容治理 |
 | 产品案例 | 当前系统结构、公开边界、验证说明，以及 PDF / ZIP 下载入口 |
 
-## 技术栈
-
-React 19 · TypeScript · Vite · Vitest · Lucide 图标 · 纯 CSS / SVG 图表
-
-## 本地开发
-
-```bash
-npm install        # 按 package-lock.json 安装依赖
-npm run dev        # 本地开发服务器
-npm run typecheck  # TypeScript 类型检查
-npm run lint       # ESLint 代码检查
-npm test           # Vitest 单元测试
-npm run build      # 生产构建（base 为 /kaoyan-study-showcase/）
-npm run preview    # 本地预览构建产物
-```
-
 ## 架构与隐私边界
 
 - **唯一数据所有者**：`src/data/public-source-mirror.ts` —— 全部为泛化固定示例。
 - **兼容导出**：`src/data/demo-fixtures.ts` 仅保留旧 compact 组件所需的 re-export，不维护第二份数据。
 - **唯一可变状态所有者**：`src/lib/demo-state.ts` 的 reducer；派生指标一律由选择器计算，不重复存值。
 - **hash 路由**：路由编码在 URL hash 中，任意静态托管（含 GitHub Pages）下深层视图可直达，无需服务器改写。
-- **内存态演示**：状态仅存于内存，刷新页面即回到初始合成场景，不写任何持久化存储。
 - **零运行时网络**：无 API 客户端、无分析脚本、无远程字体/图片、无 Service Worker、无认证流程。
 - **未来边界**：若日后引入敏感数据路径，必须先增加显式认证，并将「未认证」与「无权限」作为两种不同的拒绝原因；任何 schema 迁移必须幂等、保留旧行，并从旧时间戳回填缺失/为零/为空的日期列。
-
-## 验证
-
-交付前依次执行：类型检查、代码检查、单元测试、生产构建、桌面与移动端浏览器流程、隐私扫描、PDF 与 ZIP 完整性校验。所有命令结果按「通过 / 失败 / 跳过」如实报告；失败即停止交付并修复回归。
 
 ## 发布产物与命令
 
@@ -66,6 +78,8 @@ npm run audit:privacy       # 5. 隐私扫描（源码 / dist / PDF 文本 / ZIP
 npm run verify:artifacts    # 6. 校验 PDF 页数与文本、ZIP 完整性、清单哈希、解压后本地启动
 ```
 
+交付纪律：所有命令结果按「通过 / 失败 / 跳过」如实报告；失败即停止交付并修复回归，不以任何措辞暗示未通过的检查已通过。
+
 脚本说明：
 
 - `scripts/serve.mjs` — Node 核心模块静态服务器，同时用于离线包与本地产物生成。
@@ -76,3 +90,15 @@ npm run verify:artifacts    # 6. 校验 PDF 页数与文本、ZIP 完整性、�
 - `scripts/release-helper.py` — PDF 检查/渲染（PyMuPDF）与 ZIP 创建/校验（标准库）辅助脚本；PyMuPDF 不可用时 PDF 相关命令明确失败，不静默降级。
 
 产物可用性（`src/data/release-artifacts.json`，由脚本更新）会驱动「产品案例」页的下载按钮：产物未生成时按钮显示「暂未生成」并禁用；离线演示包内不包含自身的 ZIP 副本，因此离线包内的 ZIP 下载入口按设计禁用，PDF 下载始终可用。
+
+## 目录
+
+```text
+src/data/              合成公开数据与产物可用性
+src/lib/               demo 状态与派生选择器
+src/components/        视图组件
+scripts/               发布、隐私审计与产物校验脚本
+public/downloads/      案例 PDF 与离线 ZIP（脚本生成）
+docs/                  设计、计划与 Aegis 工作记录
+tests/                 Vitest / Playwright 测试
+```
